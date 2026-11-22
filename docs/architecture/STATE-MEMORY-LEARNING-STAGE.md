@@ -142,6 +142,13 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 - **HOST PASS (2026-11-22)**: two independent Ubuntu process invocations emitted `WRITE_PASS` and `RESTART_READ_PASS` with the same external temporary directory. Evidence: `docs/evidence/2026-11-22-memory-process-restart-verification.md`. This is clean-exit/relaunch memory readback only; SML-02 remains OPEN.
 - This proves clean process-exit/relaunch readback only, **not** forced process kill, power-loss-safe writes, or durable Agent Framework checkpoint resume. Those remain OPEN.
 
+## Controlled abrupt-termination corruption probe (2026-11-22)
+
+- Added `stage-partial` and `verify-partial` to the separate-process probe (`305190f`, corrected C# literal in `58b6b1b`).
+- The staging process writes an intentionally truncated JSON manifest in an isolated external temporary directory, emits `PARTIAL_WRITE_READY`, and waits for an OS-level forced termination. A second process must emit `CORRUPT_REJECTED` when attempting to read that manifest.
+- **PENDING HOST BUILD/EXECUTION**. This is a controlled fault-injection test of **fail-closed readback**, not a claim that `ResearchMemoryStore.SaveAsync` was interrupted at a particular byte, nor proof of atomic writes, recovery, or framework checkpoint resume.
+- The known gap remains: `SaveAsync` creates the final path before serialization; a process kill may leave a partial record and prevent retry under the same experiment ID. Atomic publish/recovery needs a separate design and test.
+
 ## Implementation order
 
 1. Inspect pinned C# Agent Framework APIs and current workflow construction to select supported state isolation and checkpoint primitives.
