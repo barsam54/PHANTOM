@@ -191,5 +191,5 @@ These describe framework concepts; concrete C# APIs must be verified against the
 
 - Added production `AuthenticatedResearchMemoryReader` (`faafdbf`), which accepts a host-authenticated `ClaimsPrincipal`, requires exactly one matching experiment claim and exactly one UTC cutoff claim, and delegates to the existing provenance-verified, time-scoped store read.
 - Added regression coverage (`a0a6623`) for accepted scope, anonymous identity, cross-experiment access, missing experiment/cutoff, premature cutoff, and non-UTC cutoff.
-- **PENDING HOST BUILD/TEST**. Prior 47/47 result predates these commits.
+- **HOST PASS (2026-11-22):** 48/48 full infrastructure tests succeeded, 0 failed/skipped, duration 2s 095ms. Evidence: `docs/evidence/2026-11-22-authenticated-memory-policy-verification.md`. This does not close SML-04.
 - **Critical boundary:** `ClaimsPrincipal.Identity.IsAuthenticated` is an assertion supplied by the hosting application, not cryptographic verification. This adapter does not authenticate tokens, prevent a malicious in-process caller from constructing claims, restrict direct `ResearchMemoryStore.ReadAsync` access, or enforce OS filesystem permissions. Production SML-04 remains OPEN until a trusted authentication provider, access-controlled entry point, and filesystem isolation are integrated and verified. No release.
