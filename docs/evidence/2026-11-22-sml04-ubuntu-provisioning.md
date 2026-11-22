@@ -39,3 +39,27 @@ Gate: PARTIAL / OPEN.
 - Source changes after `6da6d37` have not been regression-tested on Ubuntu.
 
 Do not infer deployment PASS from filesystem provisioning or unit tests. SML-04 stays OPEN until the operational gate and rotation checks are observed.
+
+## End-to-end operational verification (2026-11-22)
+
+Source: user-provided Ubuntu terminal output.
+Execution baseline: commit 6da6d37; documentation subsequently synchronized to a158e72.
+
+- PASS: trusted host restarted after atomic signing-key replacement.
+- PASS: outsider `mohsen` denied Unix socket connection.
+- PASS: authorized `phantom-worker` received a signed grant.
+- PASS: authorized worker read admitted `sml04-test` memory through trusted socket.
+- PASS: wrong experiment scope denied.
+- PASS: worker denied direct signing-key access and private-memory traversal.
+- PASS: socket ownership, group membership and permissions verified.
+- PASS: old grant rejected after signing-key replacement.
+- PASS: consolidated `scripts/verify-sml04-linux.sh` execution.
+- PASS: consolidated command completed with `SML-04 END-TO-END: PASS`.
+
+Limitation: the old grant had a five-minute lifetime. Rejection after rotation
+was observed, but the test did not independently establish that the grant
+remained unexpired. Rotation-specific rejection therefore remains to be
+verified with an unexpired old-key grant.
+
+Gate: operational checks PASS; final SML-04 closure PENDING
+rotation-specific proof and evidence commit.
