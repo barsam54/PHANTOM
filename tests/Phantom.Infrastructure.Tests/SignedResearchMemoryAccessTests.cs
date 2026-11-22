@@ -7,6 +7,11 @@ namespace Phantom.Infrastructure.Tests;
 [TestClass]
 public sealed class SignedResearchMemoryAccessTests
 {
+    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
+
     [TestMethod]
     public async Task SignedGrantEnforcesSignatureExperimentCutoffAndExpiry()
     {
@@ -26,28 +31,29 @@ public sealed class SignedResearchMemoryAccessTests
             var store = new ResearchMemoryStore(Path.Combine(root, "memory"));
             await store.SaveAsync(candidate);
             byte[] key = RandomNumberGenerator.GetBytes(32);
-            var access = new SignedResearchMemoryAccess(store, key);
+            var clock = new FixedClock(now);
+            var access = new SignedResearchMemoryAccess(store, key, clock);
             string grant = access.Issue("exp-signed", cutoff, now.AddMinutes(5));
 
-            Assert.AreEqual(candidate, await access.ReadAsync(grant, "exp-signed", now));
+            Assert.AreEqual(candidate, await access.ReadAsync(grant, "exp-signed"));
             await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(() =>
-                access.ReadAsync(grant, "other-exp", now));
+                access.ReadAsync(grant, "other-exp"));
             await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(() =>
-                access.ReadAsync(grant, "exp-signed", now.AddMinutes(5)));
+                new SignedResearchMemoryAccess(store, key, new FixedClock(now.AddMinutes(5)))
+                    .ReadAsync(grant, "exp-signed"));
             await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(() =>
-                new SignedResearchMemoryAccess(store, RandomNumberGenerator.GetBytes(32))
-                    .ReadAsync(grant, "exp-signed", now));
+                new SignedResearchMemoryAccess(store, RandomNumberGenerator.GetBytes(32), clock)
+                    .ReadAsync(grant, "exp-signed"));
             string[] parts = grant.Split('.');
             byte[] payload = Convert.FromBase64String(parts[0]);
             payload[0] ^= 1;
             string tampered = Convert.ToBase64String(payload) + "." + parts[1];
             await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(() =>
-                access.ReadAsync(tampered, "exp-signed", now));
+                access.ReadAsync(tampered, "exp-signed"));
             string earlyGrant = access.Issue("exp-signed", observed, now.AddMinutes(5));
             await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(() =>
-                access.ReadAsync(earlyGrant, "exp-signed", now));
-            await Assert.ThrowsExactlyAsync<ArgumentException>(() =>
-                access.ReadAsync(grant, "exp-signed", now.ToOffset(TimeSpan.FromHours(1))));
+                access.ReadAsync(earlyGrant, "exp-signed"));
+
         }
         finally
         {
