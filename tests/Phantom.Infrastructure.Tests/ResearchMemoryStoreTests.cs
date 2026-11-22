@@ -53,6 +53,36 @@ public sealed class ResearchMemoryStoreTests
     }
 
     [TestMethod]
+    public async Task ScopedReadRejectsFutureCutoffAndAcceptsPermittedTrainingEvidence()
+    {
+        string root = Path.Combine(Path.GetTempPath(), $"phantom-store-{Guid.NewGuid():N}");
+        try
+        {
+            Directory.CreateDirectory(root);
+            string evidence = Path.Combine(root, "evidence.txt");
+            byte[] bytes = Encoding.UTF8.GetBytes("scoped evidence");
+            await File.WriteAllBytesAsync(evidence, bytes);
+            var candidate = new ResearchMemoryCandidate(
+                "exp-scoped", "code-v1", new Uri(evidence).AbsoluteUri,
+                Convert.ToHexString(SHA256.HashData(bytes)),
+                Observation, Cutoff, "train", true);
+            var store = new ResearchMemoryStore(Path.Combine(root, "memory"));
+            await store.SaveAsync(candidate);
+
+            ResearchMemoryCandidate result =
+                await store.ReadForResearchAsync("exp-scoped", Cutoff);
+            Assert.AreEqual(candidate, result);
+
+            await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(() =>
+                store.ReadForResearchAsync("exp-scoped", Observation));
+            await Assert.ThrowsExactlyAsync<ArgumentException>(() =>
+                store.ReadForResearchAsync("exp-scoped",
+                    new DateTimeOffset(2026, 1, 3, 0, 0, 0, TimeSpan.FromHours(2))));
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
+    }
+
+    [TestMethod]
     public async Task RejectsUnsupportedSchema()
     {
         string root = Path.Combine(Path.GetTempPath(), $"phantom-store-{Guid.NewGuid():N}");
