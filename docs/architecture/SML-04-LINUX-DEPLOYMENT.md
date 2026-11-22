@@ -70,3 +70,19 @@ for checks and never modifies permissions or users.
 SML-04 cannot close without captured host output of that script, a positive
 read of an admitted memory record under the correct cutoff, a real
 restart/key-rotation check, and regression tests. All are currently OPEN.
+
+## Final operational verification
+
+SML-04 Linux operational gate: PASS.
+
+Verified:
+- Trusted host and worker UID isolation.
+- Private signing-key and memory access controls.
+- Unix socket ownership and access restrictions.
+- Authorized grant issuance and memory read.
+- Wrong-scope and outsider denial.
+- Atomic signing-key rotation.
+- Old-key grant invalidation under the rotated key.
+- Grant validity at the time of key rotation.
+
+No release authorized.

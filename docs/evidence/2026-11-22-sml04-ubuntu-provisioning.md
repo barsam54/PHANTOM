@@ -63,3 +63,13 @@ verified with an unexpired old-key grant.
 
 Gate: operational checks PASS; final SML-04 closure PENDING
 rotation-specific proof and evidence commit.
+
+## Final key-rotation evidence
+
+- Grant issued: 2026-11-22T10:34:43.054646Z
+- Signing key rotated: 2026-11-22T10:37:22.646912Z
+- Grant expired: 2026-11-22T10:40:43.056107Z
+- PASS: grant was valid when signing key rotated.
+- PASS: old grant signature rejected under rotated key.
+- PASS: Linux end-to-end operational verification.
+- No secret key or signed grant recorded.
