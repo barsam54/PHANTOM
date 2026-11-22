@@ -26,7 +26,8 @@ public sealed class WorkflowObservabilityTests
             Assert.IsTrue(result.Passed);
             Activity[] traces = completed.Where(activity => activity.OperationName == "phantom.experiment.evaluate" &&
                 Equals(activity.GetTagItem("phantom.experiment.id"), request.ExperimentId)).ToArray();
-            Assert.IsNotEmpty(traces);
+            Assert.HasCount(1, traces, "Expected one completed span per workflow invocation; span IDs: " +
+                string.Join(",", traces.Select(activity => activity.Id)));
             Assert.IsTrue(traces.All(activity => activity.GetTagItem("phantom.experiment.id")?.ToString() == request.ExperimentId));
             Activity trace = traces[0];
             Assert.AreEqual("TRACE-001", trace.GetTagItem("phantom.experiment.id"));
