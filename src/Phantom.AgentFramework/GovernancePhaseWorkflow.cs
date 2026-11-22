@@ -143,7 +143,12 @@ public static class GovernancePhaseWorkflow
             "docs/architecture/GOVERNANCE-CONTRACT.json", "authorized_execute");
 
     private static Report AuthorizedExecute(Report state) =>
-        Add(state, "authorized_execute", "NOT_IMPLEMENTED", "GOV_WORKER_UNAVAILABLE",
+        state.Steps.Any(step => step.Status == "BLOCKED")
+            ? Add(state, "authorized_execute", "SKIPPED", "GOV_UPSTREAM_BLOCKED",
+                "A prerequisite was refused; no change may execute while it remains unresolved.",
+                "Repair the first blocking prerequisite, rerun preflight and resume from the specified step.",
+                "docs/architecture/GOVERNANCE-CONTRACT.json", "discover")
+            : Add(state, "authorized_execute", "NOT_IMPLEMENTED", "GOV_WORKER_UNAVAILABLE",
             "No independently qualified low-privilege coding worker is connected.",
             "Connect and test a bounded worker on an isolated branch before enabling modifications.",
             "docs/architecture/GOVERNANCE-CONTROLLER.md", "authorized_execute");
