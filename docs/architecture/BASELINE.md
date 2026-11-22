@@ -2,7 +2,7 @@
 ## Baseline Laboratory Architecture
 
 Status: OPEN
-Implementation: IN PROGRESS (initial Agent Framework workflow and MSTest verified; full baseline OPEN)
+Implementation: IN PROGRESS (all five initial acceptance gates PASS for deterministic local workflow scope; full scientific and operational baseline OPEN)
 
 ### 1. Goal
 
@@ -132,12 +132,15 @@ Workflow completion alone does not imply success.
 
 ### 9. Acceptance Gates
 
-The baseline remains OPEN until evidence confirms:
-1. A real Agent Framework workflow executes.
-2. MSTest executes through Microsoft.Testing.Platform.
-3. A real agent or workflow evaluation executes.
-4. Results and evidence are recorded.
-5. A deterministic test reproduces the same result.
+Initial acceptance gate status (verified on host 2026-11-22; CI results user-reported):
+1. PASS — real two-executor Agent Framework workflow smoke.
+2. PASS — MSTest via Microsoft.Testing.Platform; 18/18 tests.
+3. PASS — LocalEvaluator evaluates actual workflow output, including positive and negative cases.
+4. PASS — structured experiment/evaluation JSON persisted and read back.
+5. PASS — independent deterministic workflow reruns reproduce evidence fingerprints; changed expected output fails.
+
+Evidence: `docs/evidence/2026-11-22-gate4-gate5-verification.md` and `docs/evidence/2026-11-22-ci-verification.md`.
+These five gates are CLOSED only for the implemented deterministic local infrastructure scope. Overall baseline remains OPEN for model-backed evaluation, observability, state/memory/learning, domain-scientific validation, secure research execution, backup recovery, and cross-environment reproducibility.
 
 ### 10. Official Documentation
 
