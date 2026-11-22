@@ -101,6 +101,23 @@ public sealed class ResearchMemoryStore
         return candidate;
     }
 
+    /// <summary>
+    /// Applies an externally established experiment scope before opening a record.
+    /// The authorized ID must come from a trusted caller, never from the request itself.
+    /// </summary>
+    public Task<ResearchMemoryCandidate> ReadForAuthorizedExperimentAsync(
+        string requestedExperimentId,
+        string authorizedExperimentId,
+        DateTimeOffset allowedCutoffUtc,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(authorizedExperimentId) ||
+            !string.Equals(requestedExperimentId, authorizedExperimentId, StringComparison.Ordinal))
+            throw new UnauthorizedAccessException("Requested experiment is outside the authorized scope.");
+
+        return ReadForResearchAsync(requestedExperimentId, allowedCutoffUtc, cancellationToken);
+    }
+
     private string PathFor(string experimentId)
     {
         if (string.IsNullOrWhiteSpace(experimentId) || !SafeId.IsMatch(experimentId))
