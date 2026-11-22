@@ -152,6 +152,8 @@ Every implementation stage must define acceptance criteria before marking PASS:
 - Small sanitized evidence records capture the stage, commit, test scope, counts, PASS/FAIL and remaining limitations.
 - A stage may reuse or improve existing tests; an increasing test count is not a requirement.
 - No stage is marked PASS without observed execution evidence. Pending host verification is explicitly PENDING.
+- No known unexplained failure, test workaround, unresolved architectural defect, or hidden TODO may be carried into a CLOSED stage. Document the root cause and verify its fix; otherwise keep the stage OPEN.
+- A passing test suite does not automatically close a stage when a known behavior remains unexplained.
 - Keep runtime data and logs outside Git; commit only compact evidence summaries.
 
 ### 10. Official Documentation
