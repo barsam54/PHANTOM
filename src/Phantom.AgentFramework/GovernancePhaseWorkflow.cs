@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 
 namespace Phantom.AgentFramework;
