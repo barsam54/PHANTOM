@@ -15,6 +15,10 @@ public sealed class LocalAgentEvaluatorTests
         var results = await evaluator.EvaluateAsync(items, "phantom-local-smoke", CancellationToken.None);
 
         Assert.IsNotNull(results);
+        Assert.AreEqual(1, results.Total);
+        Assert.AreEqual(1, results.Passed);
+        Assert.AreEqual(0, results.Failed);
+        Assert.IsTrue(results.AllPassed);
     }
 
     [TestMethod]
@@ -25,5 +29,9 @@ public sealed class LocalAgentEvaluatorTests
         var results = await evaluator.EvaluateAsync(items, "phantom-local-smoke", CancellationToken.None);
 
         Assert.IsNotNull(results);
+        Assert.AreEqual(1, results.Total);
+        Assert.AreEqual(0, results.Passed);
+        Assert.AreEqual(1, results.Failed);
+        Assert.IsFalse(results.AllPassed);
     }
 }
