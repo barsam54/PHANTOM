@@ -26,7 +26,8 @@ Updated: 2026-11-22
 
 ## Open acceptance gates
 
-- Repository-policy CI: earlier workflow commits reported PASS in GitHub CLI output (see `docs/architecture/GOVERNANCE.md`); latest commits NOT VERIFIED. .NET restore/build/test CI added as `.github/workflows/dotnet-build-test.yml`, execution result NOT VERIFIED.
+- .NET CI: PASS for three GitHub Actions push runs reported by `gh run list`: `44986930555`, `44986936161`, `44986944911`. These verify workflow success status, not independent inspection of job logs or artifacts. Evidence: `docs/evidence/2026-11-22-ci-verification.md`.
+- Repository-policy CI: earlier runs PASS (see `docs/architecture/GOVERNANCE.md`); latest policy run not independently verified.
 - Test-project and referenced Agent Framework project local build: PASS (user-reported 2026-11-22). Repository-wide project inventory/solution build: NOT VERIFIED; no root solution is present.
 - Microsoft Agent Framework two-executor workflow execution: PASS for deterministic smoke; LocalEvaluator integrated with actual workflow output and structured evidence: PASS for local tests. Model-backed agent and multi-agent evaluation: OPEN.
 - Local Agent Framework evaluation: PASS, positive and negative assertions (user-reported 18-test run); broader agent evaluation remains OPEN.
@@ -34,7 +35,7 @@ Updated: 2026-11-22
 - Deterministic repeatability and structured JSON evaluation evidence: PASS for local workflow tests, including independent runs and SHA-256 fingerprints. Scientific and cross-environment reproducibility: OPEN.
 - Branch protection: BLOCKED by GitHub plan for this private repository (HTTP 403). Existing Actions detect violations but do not prevent direct pushes.
 
-No overall software or architecture PASS is claimed. Agent Framework 1.28.0 is pinned. Outstanding: real cTrader research execution, data correctness/leakage tests, agent state/memory/learning, observability, full CI run verification, Docker execution of project/untrusted code, backup restoration, branch enforcement and cross-environment reproducibility.
+No overall software or architecture PASS is claimed. Agent Framework 1.28.0 is pinned. Outstanding: real cTrader research execution, data correctness/leakage tests, agent state/memory/learning, observability, expanded CI coverage, Docker execution of project/untrusted code, backup restoration, branch enforcement and cross-environment reproducibility.
 
 ## Official references
 
