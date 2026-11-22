@@ -31,9 +31,7 @@ public static class ExperimentEvidenceStore
         string directory = Path.GetFullPath(evidenceDirectory);
         string path = Path.Combine(directory, request.ExperimentId + ".json");
         ExperimentResult result = ExperimentContract.Record(request, testResult, passed, path)
-        {
-            Evaluation = evaluation
-        };
+            with { Evaluation = evaluation };
 
         cancellationToken.ThrowIfCancellationRequested();
         Directory.CreateDirectory(directory);
