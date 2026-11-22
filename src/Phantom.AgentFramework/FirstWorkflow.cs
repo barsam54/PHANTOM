@@ -14,8 +14,10 @@ public static class FirstWorkflow
         string evidenceDirectory,
         CancellationToken cancellationToken = default)
     {
+        WorkflowAdmission admission = WorkflowAdmissionPolicy.Check(request, expectedOutput, evidenceDirectory);
+        if (!admission.Allowed)
+            throw new WorkflowAdmissionException(admission.Denial!);
         ExperimentContract.Validate(request);
-        ArgumentNullException.ThrowIfNull(expectedOutput);
         cancellationToken.ThrowIfCancellationRequested();
 
         string actual = await RunAsync(request.InputSpecification);
