@@ -30,3 +30,11 @@ Baseline section 9, gate 3 requires a **real agent or workflow evaluation**. The
 - Gate 4: PARTIAL (real JSON persistence and 14 passing local tests; automatic formal evaluation evidence OPEN).
 - Gate 5: PARTIAL (deterministic smoke check; scientific reproducibility OPEN).
 - Full baseline: OPEN.
+
+## Installed API verification — user terminal evidence (2026-11-22)
+- Project: Microsoft.Agents.AI 1.28.0 and Microsoft.Agents.AI.Workflows 1.28.0.
+- Transitive: Microsoft.Extensions.AI.Evaluation 10.11.0.
+- net10.0 XML API documentation confirms AgentEvaluationExtensions.EvaluateAsync overloads, AgentEvaluationResults, IAgentEvaluator, LocalEvaluator(EvalCheck[]), and EvalChecks including KeywordCheck, NonEmpty and ContainsExpected.
+- This verifies package/API availability, **not** successful invocation or behavior.
+- Next implementation: use local evaluation API in a minimal real agent test, verify exact method signatures and result semantics by compiling and running MSTest. No new packages should be needed.
+- Gate 3 remains OPEN pending a passing execution result.
