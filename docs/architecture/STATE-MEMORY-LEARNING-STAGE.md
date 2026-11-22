@@ -186,3 +186,10 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - Added two integration tests (`c069d04`) for successful evaluation/persistence/scoped read and failed evaluation without memory promotion.
 - **HOST PASS (2026-11-22):** 47/47 full infrastructure tests succeeded, 0 failed/skipped, duration 1s 981ms. Evidence: `docs/evidence/2026-11-22-evaluated-research-memory-verification.md`. This confirms the implemented deterministic integration only; overall SML stage OPEN.
 - Boundaries remain OPEN: trusted provenance/authorization, model-backed scientific evaluation, durable Agent Framework checkpoint restore, and independently demonstrated learning improvement. No release.
+
+## Authenticated-principal memory policy adapter (2026-11-22)
+
+- Added production `AuthenticatedResearchMemoryReader` (`faafdbf`), which accepts a host-authenticated `ClaimsPrincipal`, requires exactly one matching experiment claim and exactly one UTC cutoff claim, and delegates to the existing provenance-verified, time-scoped store read.
+- Added regression coverage (`a0a6623`) for accepted scope, anonymous identity, cross-experiment access, missing experiment/cutoff, premature cutoff, and non-UTC cutoff.
+- **PENDING HOST BUILD/TEST**. Prior 47/47 result predates these commits.
+- **Critical boundary:** `ClaimsPrincipal.Identity.IsAuthenticated` is an assertion supplied by the hosting application, not cryptographic verification. This adapter does not authenticate tokens, prevent a malicious in-process caller from constructing claims, restrict direct `ResearchMemoryStore.ReadAsync` access, or enforce OS filesystem permissions. Production SML-04 remains OPEN until a trusted authentication provider, access-controlled entry point, and filesystem isolation are integrated and verified. No release.
