@@ -36,21 +36,29 @@ public static class ExperimentEvidenceStore
         cancellationToken.ThrowIfCancellationRequested();
         Directory.CreateDirectory(directory);
 
-        // CreateNew prevents accidental overwrites; no fallback to a second record for the same ID.
-        await using FileStream stream = new(
-            path, FileMode.CreateNew, FileAccess.Write, FileShare.None,
-            bufferSize: 4096, options: FileOptions.Asynchronous);
-
+        // Stage a complete evidence record before publishing its immutable identity.
+        // A process kill during serialization leaves only an unreferenced temporary file.
+        string temporaryPath = Path.Combine(directory,
+            $".{request.ExperimentId}.{Guid.NewGuid():N}.tmp");
         try
         {
-            await JsonSerializer.SerializeAsync(stream, result, cancellationToken: cancellationToken);
-            await stream.FlushAsync(cancellationToken);
+            await using (FileStream stream = new(
+                temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None,
+                bufferSize: 4096, options: FileOptions.Asynchronous))
+            {
+                await JsonSerializer.SerializeAsync(stream, result,
+                    cancellationToken: cancellationToken);
+                await stream.FlushAsync(cancellationToken);
+                stream.Flush(flushToDisk: true);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(temporaryPath, path, overwrite: false);
         }
-        catch
+        finally
         {
-            await stream.DisposeAsync();
-            File.Delete(path);
-            throw;
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
         }
 
         return result;
