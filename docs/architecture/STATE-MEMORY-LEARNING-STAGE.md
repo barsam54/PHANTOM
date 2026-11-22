@@ -153,7 +153,7 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 
 - Changed `ResearchMemoryStore.SaveAsync` to serialize into a unique same-directory temporary file, flush file contents, close it, then publish via `File.Move(..., overwrite: false)` (`82ab4e1`). A duplicate experiment cannot overwrite the winner; orphan temporary files are not treated as records.
 - Added negative/regression test for an orphan partial temporary file, normal publication, and duplicate rejection (`0d37c2c`).
-- **PENDING HOST BUILD/TEST**; expected full infrastructure suite 44 tests.
+- **HOST PASS (2026-11-22)**: 44/44 full infrastructure tests succeeded, 0 failed/skipped; duration 3s 785ms. Evidence: `docs/evidence/2026-11-22-memory-atomic-publish-verification.md`.
 - This reduces exposure to incomplete final manifests on process interruption. It does **not** guarantee durability after power loss (directory metadata sync is not implemented), secure against hostile symlinks, recover orphan files, or prove interrupted real `SaveAsync` behavior. SML-02/SML-03 remain OPEN.
 
 ## Implementation order
