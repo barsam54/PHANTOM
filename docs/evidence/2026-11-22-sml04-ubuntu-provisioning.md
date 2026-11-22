@@ -18,13 +18,24 @@ Gate: PARTIAL / OPEN.
   - `/var/lib/phantom-security/keys`: `phantom-security:phantom-security 700`.
   - `/run/phantom-security`: `phantom-security:phantom-worker 710`.
 
+## Additional live Ubuntu evidence (user-reported, 2026-11-22)
+
+- Private signing key created at `/var/lib/phantom-security/keys/signing.key`: `phantom-security:phantom-security`, mode `0600`, **32 bytes**.
+- `dotnet publish src/Phantom.ResearchSecurityHost/Phantom.ResearchSecurityHost.csproj -c Release -o /tmp/phantom-security-publish`: **Build succeeded** in 7.4 s.
+- Published host deployed to `/opt/phantom-security`; host DLL confirmed `root:root 644` after correcting initial ownership.
+- Trusted host launched as `phantom-security` with effective group `phantom-worker`, experiment `sml04-test`, worker UID **994**, maximum cutoff `2026-12-01T00:00:00.0000000+00:00`. User observed `Research security host listening.`
+- Socket `/run/phantom-security/research.sock` confirmed `phantom-security:phantom-worker 660`.
+- Cross-UID negative checks: `phantom-worker` cannot read signing key (**PASS**) and cannot traverse private memory (**PASS**).
+- Worker connected to Unix socket. Requests using cutoff `2026-12-01` returned `{"error":"denied"}` because the five-minute grant expiry would precede the requested future cutoff. This is **not** evidence of unauthorized-peer rejection.
+- Corrected authorized worker request used cutoff one minute before current UTC; server returned a nonempty `{"grant":"..."}` (**PASS**, live positive grant issuance). The secret grant token is intentionally omitted from this evidence.
+- Observations are based on user-provided terminal output, not direct execution by the connector.
+
 ## Not yet verified
 
-- No evidence of a 32-byte key provisioned with correct ownership and permissions.
-- No trusted host process startup, Unix socket creation, or worker socket connection test.
 - No admitted memory record read through trusted socket.
-- No negative access check as `phantom-worker` or an outsider UID.
+- Negative key-read and memory-traversal checks as `phantom-worker` PASS; outsider socket denial and wrong-experiment rejection still PENDING.
 - No live key replacement/restart and old-grant rejection.
+- Full `scripts/verify-sml04-linux.sh` execution remains PENDING.
 - Source changes after `6da6d37` have not been regression-tested on Ubuntu.
 
 Do not infer deployment PASS from filesystem provisioning or unit tests. SML-04 stays OPEN until the operational gate and rotation checks are observed.
