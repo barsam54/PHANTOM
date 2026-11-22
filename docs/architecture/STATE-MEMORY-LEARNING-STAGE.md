@@ -97,6 +97,14 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 - **HOST PASS (2026-11-22):** full suite 34/34 succeeded, 0 failed/skipped. Evidence: `docs/evidence/2026-11-22-memory-admission-verification.md`. This is a pure validation slice, not a durable memory store. It does not yet authenticate evidence, verify file contents, enforce access control on retrieval, or prove learning. SML-03/04 remain OPEN.
 - `SchemaVersion = 1` identifies the initial contract; schema migration and persistence are still to be designed before any storage implementation.
 
+## Evidence integrity slice (2026-11-22)
+
+- Added `ResearchMemoryEvidenceVerifier.VerifyAsync` to verify actual local evidence file bytes against the declared SHA-256 fingerprint after admission validation. A mismatch is rejected; no content is written to memory.
+- Added three MSTest cases: matching hash, tampered evidence and missing evidence.
+- Commits: `faefd0a` (implementation), `cd2dcfa` (tests).
+- **PENDING HOST BUILD/TEST**: expected full suite is 37 tests if these three compile and pass.
+- **Boundary:** a matching hash verifies consistency with a supplied digest, **not authenticity** of its source. This does not yet bind the digest to signed/trusted experiment evidence, establish read authorization, or implement persistent memory. SML-03 and SML-04 remain OPEN.
+
 ## Implementation order
 
 1. Inspect pinned C# Agent Framework APIs and current workflow construction to select supported state isolation and checkpoint primitives.
