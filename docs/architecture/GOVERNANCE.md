@@ -1,12 +1,12 @@
 # PHANTOM Governance and Denial Reporting
 
-Status: PARTIAL; repository policy CI verified on earlier commits; mandatory branch enforcement unavailable.
+Status: PARTIAL; repository policy CI verified through 2026-11-22 reported runs; mandatory branch enforcement unavailable.
 Updated: 2026-11-22
 
 ## Layers
 
 1. Repository policy: `scripts/check_repository_policy.py` checks tracked files against the approved baseline and reports structured JSON violations. It is independent of Microsoft Agent Framework.
-2. GitHub Actions: `.github/workflows/repository-policy.yml` runs the repository policy checker on pushes to `main`, pull requests, and manual dispatch. Six earlier push runs were reported successful by GitHub CLI on 2026-11-22. A run for commit `eb883dd` was not found using `gh run list --commit eb883dd`; its CI status remains NOT VERIFIED.
+2. GitHub Actions: `.github/workflows/repository-policy.yml` runs the repository policy checker on pushes to `main`, pull requests, and manual dispatch. GitHub CLI output on 2026-11-22 confirmed successful runs for `e4dd2d8` (44979402746), `2e3b819` (44979477004), `db2f157` (44979481560), `8679c9e` (44979485823), and `4d4bfe3` (44979685436). Earlier output also confirmed `eb883dd` (44978589860). These are repository-policy checks, not proof of full .NET build/test CI.
 3. Runtime control: future Microsoft Agent Framework workflows will validate prerequisites and report structured denial reasons. NOT IMPLEMENTED.
 
 ## Denial format
@@ -22,7 +22,7 @@ Failures must report: `code`, `stage`, `reason`, `action`, and, when available, 
 
 ## Open verification
 
-- Verify GitHub Actions result for the latest commit, rather than relying on the latest listed run if it predates the push.
+- Verify GitHub Actions result for new commits after this checkpoint; earlier successful runs do not establish future commit status.
 - Test structured denial reporting with an invalid change in an isolated branch when needed.
 - Implement and evaluate runtime prerequisite checks using Microsoft Agent Framework.
 
