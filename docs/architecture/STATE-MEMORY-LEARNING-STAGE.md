@@ -94,7 +94,7 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 
 - Added `src/Phantom.AgentFramework/ResearchMemoryAdmission.cs` (`9875d91`) and seven positive/negative MSTest cases (`5995321`).
 - Admission checks explicit provenance, SHA-256 fingerprint shape, absolute file evidence URI, UTC timestamps, observation cutoff, training partition and positive evaluation.
-- **PENDING HOST BUILD/TEST:** this is a pure validation slice, not a durable memory store. It does not yet authenticate evidence, verify file contents, enforce access control on retrieval, or prove learning. SML-03/04 remain OPEN.
+- **HOST PASS (2026-11-22):** full suite 34/34 succeeded, 0 failed/skipped. Evidence: `docs/evidence/2026-11-22-memory-admission-verification.md`. This is a pure validation slice, not a durable memory store. It does not yet authenticate evidence, verify file contents, enforce access control on retrieval, or prove learning. SML-03/04 remain OPEN.
 - `SchemaVersion = 1` identifies the initial contract; schema migration and persistence are still to be designed before any storage implementation.
 
 ## Implementation order
