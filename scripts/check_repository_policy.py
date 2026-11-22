@@ -59,7 +59,8 @@ def check_path(path):
 
 GOVERNANCE_CONTRACT = "docs/architecture/GOVERNANCE-CONTRACT.json"
 REQUIRED_GOVERNANCE_CAPABILITIES = {
-    "dashboard", "evidence", "end_to_end", "enforcement", "baseline_review"
+    "dashboard", "evidence", "end_to_end", "enforcement", "baseline_review",
+    "impact_rollback"
 }
 REQUIRED_DENIAL_FIELDS = {"code", "stage", "reason", "evidence", "action", "resume"}
 REQUIRED_STAGE_STEPS = (
@@ -112,8 +113,8 @@ def check_governance_contract(root=ROOT):
     ids = [item.get("id") for item in caps if isinstance(item, dict)] if isinstance(caps, list) else []
     if set(ids) != REQUIRED_GOVERNANCE_CAPABILITIES or len(ids) != len(REQUIRED_GOVERNANCE_CAPABILITIES):
         errors.append(governance_denial(
-            "GOV_CAPABILITY_MISMATCH", "Exactly five approved complementary capabilities are required",
-            "Restore all five capability IDs without duplicates or an additional controller"
+            "GOV_CAPABILITY_MISMATCH", "Exactly six approved complementary capabilities are required",
+            "Restore all six capability IDs without duplicates or an additional controller"
         ))
     if not isinstance(caps, list) or any(
         not isinstance(item, dict) or item.get("state") != "OPEN" or not item.get("proof")
@@ -123,6 +124,37 @@ def check_governance_contract(root=ROOT):
             "GOV_CAPABILITY_EVIDENCE_REQUIRED", "Capability status/proof incomplete or falsely closed",
             "Retain OPEN and give the acceptance proof needed for each capability"
         ))
+    impact = doc.get("impact_rollback")
+    required_impact_fields = {
+        "change_id", "base_sha", "candidate_sha", "affected_components",
+        "criteria_revision", "metric_definitions", "baseline_results",
+        "candidate_results", "comparison_result", "regression_findings",
+        "risk_class", "rollback_target_sha", "rollback_plan",
+        "rollback_test_evidence", "post_change_monitoring", "decision_evidence"
+    }
+    required_comparisons = {"IMPROVED", "EQUIVALENT", "REGRESSION", "INCONCLUSIVE"}
+    if not isinstance(impact, dict) or impact.get("state") != "OPEN":
+        errors.append(governance_denial(
+            "GOV_IMPACT_CONTRACT_MISSING",
+            "Impact and rollback acceptance remains unimplemented or undocumented",
+            "Restore impact_rollback in OPEN state; do not claim live rollback capability"
+        ))
+    else:
+        fields = impact.get("required_fields")
+        comparisons = impact.get("comparisons")
+        rules = impact.get("acceptance_rules")
+        if (not isinstance(fields, list) or set(fields) != required_impact_fields
+                or len(fields) != len(required_impact_fields)
+                or not isinstance(comparisons, list)
+                or set(comparisons) != required_comparisons
+                or len(comparisons) != len(required_comparisons)
+                or not isinstance(rules, list) or len(rules) < 6
+                or any(not isinstance(rule, str) or not rule.strip() for rule in rules)):
+            errors.append(governance_denial(
+                "GOV_IMPACT_CRITERIA_INCOMPLETE",
+                "Before/after metric definitions, decisions or rollback proof fields missing",
+                "Restore declared before/after, risk, recovery and post-rollback criteria"
+            ))
     if doc.get("phase_steps") != list(REQUIRED_STAGE_STEPS):
         errors.append(governance_denial(
             "GOV_STAGE_CONTRACT_MISMATCH", "End-to-end stage contract is missing or reordered",
