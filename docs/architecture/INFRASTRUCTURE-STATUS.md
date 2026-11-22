@@ -24,6 +24,12 @@ Updated: 2026-11-22
 - `Microsoft.Agents.AI` and `Microsoft.Agents.AI.Workflows` 1.28.0 restored and built successfully on .NET 10 (reported host output); package project committed as `e4dd2d8`.
 - First two-executor Agent Framework workflow committed; 4 MSTest tests passed locally, including output and repeatability checks (reported host output).
 
+## Latest stage pending verification
+
+- Workflow admission policy: 22/22 local tests PASS, user-reported 2026-11-22. Structured denial guard accepted within request/path validation scope.
+- Workflow observability: `ActivitySource` instrumentation added with two new tests for PASS/FAIL tracing and omission of input/output payload from trace tags. Build and tests PENDING host verification; do not claim full Agent Framework model observability or exporter setup.
+- Stage acceptance policy added to `docs/architecture/BASELINE.md`: stage-specific tests, regression, integration when applicable, negative cases, and evidence required.
+
 ## Open acceptance gates
 
 - .NET CI: PASS for three GitHub Actions push runs reported by `gh run list`: `44986930555`, `44986936161`, `44986944911`. These verify workflow success status, not independent inspection of job logs or artifacts. Evidence: `docs/evidence/2026-11-22-ci-verification.md`.
