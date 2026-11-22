@@ -21,7 +21,27 @@ sudo -n true || { echo "FAIL passwordless sudo required for verification"; exit 
 [[ "$(stat -c %a "$(dirname "$PHANTOM_SOCKET_PATH")")" = 710 ]] || { echo 'FAIL socket directory mode'; exit 1; }
 [[ "$(stat -c %a "$PHANTOM_SOCKET_PATH")" = 660 ]] || { echo 'FAIL socket mode'; exit 1; }
 [[ "$(stat -c %u "$PHANTOM_SOCKET_PATH")" = "$(id -u "$PHANTOM_HOST_USER")" ]] || { echo 'FAIL socket owner'; exit 1; }
-[[ "$(stat -c %g "$PHANTOM_SOCKET_PATH")" = "$(id -g "$PHANTOM_WORKER_USER")" ]] || { echo 'FAIL socket group'; exit 1; }
+socket_gid="$(stat -c %g "$PHANTOM_SOCKET_PATH")"
+[[ " $(id -G "$PHANTOM_WORKER_USER") " == *" $socket_gid "* ]] || { echo 'FAIL worker not member of socket group'; exit 1; }
+[[ "$(stat -c %g "$(dirname "$PHANTOM_SOCKET_PATH")")" = "$socket_gid" ]] || { echo 'FAIL socket directory group mismatch'; exit 1; }
+[[ "$(stat -c %u "$(dirname "$PHANTOM_SOCKET_PATH")")" = "$(id -u "$PHANTOM_HOST_USER")" ]] || { echo 'FAIL socket directory owner'; exit 1; }
+[[ ! -L "$PHANTOM_KEY_PATH" && ! -L "$PHANTOM_MEMORY_DIR" && ! -L "$PHANTOM_SOCKET_PATH" ]] || { echo 'FAIL symlink in protected paths'; exit 1; }
+if [[ -n "${PHANTOM_OUTSIDER_USER:-}" ]]; then
+    [[ "$(id -u "$PHANTOM_OUTSIDER_USER")" != "$(id -u "$PHANTOM_WORKER_USER")" ]] || { echo 'FAIL outsider shares worker UID'; exit 1; }
+    [[ "$(id -u "$PHANTOM_OUTSIDER_USER")" != "$(id -u "$PHANTOM_HOST_USER")" ]] || { echo 'FAIL outsider shares host UID'; exit 1; }
+    if sudo -n -u "$PHANTOM_OUTSIDER_USER" python3 - "$PHANTOM_SOCKET_PATH" <<'PY'
+import socket, sys
+with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+    try:
+        s.connect(sys.argv[1])
+    except PermissionError:
+        sys.exit(0)
+    except OSError:
+        sys.exit(1)
+sys.exit(1)
+PY
+    then echo 'PASS outsider socket connection denied'; else echo 'FAIL outsider socket connection allowed or inconclusive'; exit 1; fi
+fi
 sudo -n -u "$PHANTOM_HOST_USER" test -r "$PHANTOM_KEY_PATH"
 sudo -n -u "$PHANTOM_HOST_USER" test -d "$PHANTOM_MEMORY_DIR"
 if sudo -n -u "$PHANTOM_WORKER_USER" test -r "$PHANTOM_KEY_PATH"; then echo 'FAIL worker reads key'; exit 1; fi
