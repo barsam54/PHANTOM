@@ -22,9 +22,14 @@ string experimentId = args[3];
 if (!Path.IsPathFullyQualified(args[0]) || !Path.IsPathFullyQualified(args[1]) ||
     !Path.IsPathFullyQualified(args[2]) || string.IsNullOrWhiteSpace(experimentId))
     throw new ArgumentException("Absolute paths and nonempty experiment ID required.");
+if (GetUid() == 0)
+    throw new UnauthorizedAccessException("Trusted service must not run as root.");
 if (GetUid() == workerUid)
     throw new UnauthorizedAccessException("Worker and trusted host must have distinct Linux UIDs.");
 ResearchStorageBoundary.VerifyPrivateDirectory(memoryDirectory);
+for (DirectoryInfo? ancestor = new DirectoryInfo(socketDirectory); ancestor is not null; ancestor = ancestor.Parent)
+    if ((ancestor.Attributes & FileAttributes.ReparsePoint) != 0)
+        throw new UnauthorizedAccessException("Socket path ancestor symlinks forbidden.");
 if ((File.GetAttributes(socketDirectory) & FileAttributes.ReparsePoint) != 0)
     throw new UnauthorizedAccessException("Socket directory symlinks forbidden.");
 UnixFileMode socketMode = File.GetUnixFileMode(socketDirectory);
@@ -58,6 +63,7 @@ try
     // and socket group ownership for the authorized worker UID.
     File.SetUnixFileMode(socketPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite);
     listener.Listen(16);
+    Console.WriteLine("Research security host listening.");
     using var shutdown = new CancellationTokenSource();
     Console.CancelKeyPress += (_, e) => { e.Cancel = true; shutdown.Cancel(); };
     while (!shutdown.IsCancellationRequested)
@@ -66,7 +72,10 @@ try
         try { peer = await listener.AcceptAsync(shutdown.Token); }
         catch (OperationCanceledException) { break; }
         // Handle sequentially to cap concurrency and prevent unbounded worker load.
-        await handler.ServeConnectionAsync(peer, shutdown.Token);
+        using var requestDeadline = CancellationTokenSource.CreateLinkedTokenSource(shutdown.Token);
+        requestDeadline.CancelAfter(TimeSpan.FromSeconds(5));
+        try { await handler.ServeConnectionAsync(peer, requestDeadline.Token); }
+        catch (OperationCanceledException) when (!shutdown.IsCancellationRequested) { peer.Dispose(); }
     }
 }
 finally
