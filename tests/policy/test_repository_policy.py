@@ -77,5 +77,49 @@ class RepositoryPolicyTests(unittest.TestCase):
             issues = policy.check_governance_contract(root)
         self.assertIn("GOV_CAPABILITY_MISMATCH", [i["code"] for i in issues])
 
+
+    def test_governance_sixth_capability_required(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "docs/architecture").mkdir(parents=True)
+            doc = json.loads((policy.ROOT / policy.GOVERNANCE_CONTRACT).read_text(encoding="utf-8"))
+            doc["capabilities"] = [c for c in doc["capabilities"] if c["id"] != "impact_rollback"]
+            (root / policy.GOVERNANCE_CONTRACT).write_text(json.dumps(doc), encoding="utf-8")
+            (root / "docs/architecture/BASELINE.md").write_text("fixture")
+            (root / "docs/architecture/GOVERNANCE-CONTROLLER.md").write_text("fixture")
+            issues = policy.check_governance_contract(root)
+        self.assertIn("GOV_CAPABILITY_MISMATCH", [i["code"] for i in issues])
+
+    def test_governance_impact_proof_fields_mandatory(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "docs/architecture").mkdir(parents=True)
+            doc = json.loads((policy.ROOT / policy.GOVERNANCE_CONTRACT).read_text(encoding="utf-8"))
+            doc["impact_rollback"]["required_fields"].remove("rollback_test_evidence")
+            (root / policy.GOVERNANCE_CONTRACT).write_text(json.dumps(doc), encoding="utf-8")
+            (root / "docs/architecture/BASELINE.md").write_text("fixture")
+            (root / "docs/architecture/GOVERNANCE-CONTROLLER.md").write_text("fixture")
+            issues = policy.check_governance_contract(root)
+        self.assertIn("GOV_IMPACT_CRITERIA_INCOMPLETE", [i["code"] for i in issues])
+        self.assertTrue(all(i.get("action") and i.get("resume") for i in issues))
+
+    def test_governance_impact_cannot_self_mark_pass(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "docs/architecture").mkdir(parents=True)
+            doc = json.loads((policy.ROOT / policy.GOVERNANCE_CONTRACT).read_text(encoding="utf-8"))
+            doc["impact_rollback"]["state"] = "PASS"
+            (root / policy.GOVERNANCE_CONTRACT).write_text(json.dumps(doc), encoding="utf-8")
+            (root / "docs/architecture/BASELINE.md").write_text("fixture")
+            (root / "docs/architecture/GOVERNANCE-CONTROLLER.md").write_text("fixture")
+            issues = policy.check_governance_contract(root)
+        self.assertIn("GOV_IMPACT_CONTRACT_MISSING", [i["code"] for i in issues])
+
 if __name__ == "__main__":
     unittest.main()
