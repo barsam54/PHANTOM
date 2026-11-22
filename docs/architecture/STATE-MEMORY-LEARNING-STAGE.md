@@ -1,6 +1,6 @@
 # PHANTOM | State, Memory, Learning Stage
 
-Status: OPEN — DESIGN/ACCEPTANCE DEFINED; implementation and host tests PENDING
+Status: OPEN — initial isolation tests HOST PASS; direct state/checkpoint/memory/learning gates PENDING
 Started: 2026-11-22
 Baseline: `docs/architecture/BASELINE.md` §§3, 6, 7, 9A
 
@@ -38,7 +38,7 @@ No criterion is marked PASS based on this design document.
 
 - Reviewed current `FirstWorkflow.RunAsync`: it creates fresh executor bindings and builds a fresh Microsoft Agent Framework workflow for each call; no workflow instance is cached or shared.
 - Added `tests/Phantom.Infrastructure.Tests/WorkflowStateIsolationTests.cs` in commit `65d8c0f`. It checks 12 simultaneous distinct workflow inputs and a sequential fresh-run case.
-- **PENDING HOST EXECUTION**: these tests have not yet been built or run; SML-01 is not PASS.
+- **HOST PASS (2026-11-22)**: 26/26 full infrastructure tests passed (0 failed, 0 skipped), including both new isolation tests; see `docs/evidence/2026-11-22-state-isolation-verification.md`. SML-01 is still OPEN until direct framework state isolation is verified.
 - This tests observable input/output isolation only, not the framework's private/shared `IWorkflowContext` state. Add direct state-scope tests when state is actually used.
 - SML-02 through SML-06 remain OPEN; no checkpoint, research memory or learning implementation is claimed.
 
