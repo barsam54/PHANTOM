@@ -25,7 +25,15 @@ if (!Path.IsPathFullyQualified(args[0]) || !Path.IsPathFullyQualified(args[1]) |
 if (GetUid() == workerUid)
     throw new UnauthorizedAccessException("Worker and trusted host must have distinct Linux UIDs.");
 ResearchStorageBoundary.VerifyPrivateDirectory(memoryDirectory);
-ResearchStorageBoundary.VerifyPrivateDirectory(socketDirectory);
+if ((File.GetAttributes(socketDirectory) & FileAttributes.ReparsePoint) != 0)
+    throw new UnauthorizedAccessException("Socket directory symlinks forbidden.");
+UnixFileMode socketMode = File.GetUnixFileMode(socketDirectory);
+if (socketMode != (UnixFileMode.UserRead | UnixFileMode.UserWrite |
+                   UnixFileMode.UserExecute | UnixFileMode.GroupExecute))
+    throw new UnauthorizedAccessException("Socket directory must have mode 0710.");
+string keyDirectory = Path.GetDirectoryName(keyPath)
+    ?? throw new UnauthorizedAccessException("Invalid key directory.");
+ResearchStorageBoundary.VerifyPrivateDirectory(keyDirectory);
 string socketPath = Path.Combine(socketDirectory, "research.sock");
 if (File.Exists(socketPath))
     throw new IOException("Socket path already exists; refusing to replace it.");
@@ -48,7 +56,7 @@ try
 {
     // A separate trusted administrator must configure socket directory traversal
     // and socket group ownership for the authorized worker UID.
-    File.SetUnixFileMode(socketPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+    File.SetUnixFileMode(socketPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite);
     listener.Listen(16);
     using var shutdown = new CancellationTokenSource();
     Console.CancelKeyPress += (_, e) => { e.Cancel = true; shutdown.Cancel(); };
