@@ -32,22 +32,30 @@ public sealed class ResearchMemoryStore
         cancellationToken.ThrowIfCancellationRequested();
         Directory.CreateDirectory(directory);
 
-        // Never overwrite an existing experiment identity, including after process restart.
-        await using FileStream stream = new(
-            path, FileMode.CreateNew, FileAccess.Write, FileShare.None,
-            bufferSize: 4096, options: FileOptions.Asynchronous);
+        // Publish only complete manifests. Concurrent writers cannot overwrite an identity.
+        // Temporary files may remain after a hard process kill and are never read as records.
+        string temporaryPath = Path.Combine(directory, $".{candidate.ExperimentId}.{Guid.NewGuid():N}.tmp");
         try
         {
-            await JsonSerializer.SerializeAsync(stream,
-                new StoredResearchMemory(ResearchMemoryAdmission.SchemaVersion, candidate),
-                cancellationToken: cancellationToken);
-            await stream.FlushAsync(cancellationToken);
+            await using (FileStream stream = new(
+                temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None,
+                bufferSize: 4096, options: FileOptions.Asynchronous))
+            {
+                await JsonSerializer.SerializeAsync(stream,
+                    new StoredResearchMemory(ResearchMemoryAdmission.SchemaVersion, candidate),
+                    cancellationToken: cancellationToken);
+                await stream.FlushAsync(cancellationToken);
+                stream.Flush(flushToDisk: true);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(temporaryPath, path, overwrite: false);
         }
-        catch
+        finally
         {
-            await stream.DisposeAsync();
-            File.Delete(path);
-            throw;
+            // Never delete the published record, including if a competing writer won.
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
         }
     }
 
