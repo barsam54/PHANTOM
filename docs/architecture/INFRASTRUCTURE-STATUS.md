@@ -7,7 +7,7 @@ Updated: 2026-11-22
 
 - Ubuntu 26.04.1 LTS, amd64: PASS (reported host output).
 - Docker 29.1.3 installed and daemon active: PASS. Privileged daemon query reported AppArmor, seccomp builtin, cgroupns, cgroups v2 and overlayfs; ordinary user socket access denied.
-- Docker .NET SDK image pull and container smoke: PASS for startup and `dotnet --info` output. Image `mcr.microsoft.com/dotnet/sdk:10.0-noble`, SDK 10.0.404 and runtime 10.0.15 inside container. Detailed user-reported evidence: `docs/evidence/2026-11-22-docker-container-smoke.md`.
+- Docker .NET SDK image pull and container smoke: PASS for startup and `dotnet --info` output. Image `mcr.microsoft.com/dotnet/sdk:10.0-noble`, SDK 10.0.404 and runtime 10.0.15 inside container. Restricted-container checks also PASS for observed controls (see `docs/evidence/2026-11-22-docker-container-smoke.md`).
 - .NET SDK 10.0.115 installed: PASS.
 - Git SSH transport and GitHub CLI authentication as barsam54: PASS (reported host output).
 - Local MSTest execution via Microsoft.Testing.Platform: PASS, 4 succeeded / 0 failed / 0 skipped (reported 2026-11-22); includes two workflow behavior tests, one null-input test, and one test-configuration test.
@@ -30,7 +30,7 @@ Updated: 2026-11-22
 - Full solution restore/build: NOT VERIFIED.
 - Microsoft Agent Framework workflow execution: PASS for initial deterministic two-executor smoke test only; full workflow evaluation remains OPEN.
 - Agent/workflow evaluation: NOT RUN.
-- Docker daemon and .NET container smoke: PASS for observed startup and SDK output only. Numeric exit code, effective security restrictions, non-root writable-home setup, and untrusted-code isolation: NOT VERIFIED.
+- Docker restricted-container smoke: PASS (reported exit code 0; UID/GID 65534, zero effective capabilities, NoNewPrivs=1, no routes, 512 MiB memory, 0.5 CPU, 64 PIDs, root filesystem write denied). Evidence: `docs/evidence/2026-11-22-docker-container-smoke.md`. Explicit network-denial test, writable-home setup, untrusted-code isolation and automated evidence: OPEN.
 - Deterministic repeatability: initial local test PASS; persisted experiment evidence and independent rerun: NOT VERIFIED.
 - Branch protection: BLOCKED by GitHub plan for this private repository (HTTP 403). Existing Actions detect violations but do not prevent direct pushes.
 
