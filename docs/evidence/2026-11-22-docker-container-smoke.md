@@ -51,3 +51,25 @@ sudo docker run --rm \
 - CONFIGURED IN INVOCATION, NOT INDEPENDENTLY VERIFIED: no network, read-only root filesystem, all capabilities dropped, no-new-privileges, 512 MiB memory, 0.5 CPU, 64 PIDs, UID/GID 65534.
 - OPEN: assert actual restrictions inside the container; capture numeric exit code; validate non-root writable-home strategy for .NET operations; build/test PHANTOM in a container; isolation against untrusted code; automatic evidence recording.
 - No claim of safe execution of third-party trading code, cTrader compatibility, or full baseline acceptance.
+
+## Restricted-container enforcement check (2026-11-22)
+Evidence ID: PHANTOM-INFRA-DOCKER-20261122-002
+Source: user-reported terminal output; numeric exit code captured.
+Image: mcr.microsoft.com/dotnet/sdk:10.0-noble (already downloaded).
+Invocation flags: --network none, --read-only, --cap-drop ALL, --security-opt no-new-privileges, --memory 512m, --memory-swap 512m, --cpus 0.5, --pids-limit 64, --user 65534:65534.
+
+Observed:
+- id: uid=65534(nobody), gid=65534(nogroup), groups=65534(nogroup) — PASS.
+- /proc/self/status: CapEff=0000000000000000 — PASS.
+- /proc/self/status: NoNewPrivs=1 — PASS.
+- /proc/net/route: header only, no routes — PASS for absence of routes; independent connectivity denial not tested.
+- /sys/fs/cgroup/memory.max: 536870912 (512 MiB) — PASS.
+- /sys/fs/cgroup/cpu.max: 50000 100000 (0.5 CPU quota) — PASS.
+- /sys/fs/cgroup/pids.max: 64 — PASS.
+- touch /phantom-write-test: failed; read-only root filesystem check PASS.
+- DOCKER_EXIT_CODE=0 — PASS.
+
+Acceptance:
+- PASS: this specific restricted-container smoke test and observed controls.
+- OPEN: execution of untrusted code; explicit network connectivity negative test; non-root writable-home strategy for SDK build/test; per-experiment filesystem mounts and artifact handling; timeout and cancellation; repeatability and automated evidence capture.
+- This evidence is based on pasted terminal output, not a cryptographically attested execution trace.
