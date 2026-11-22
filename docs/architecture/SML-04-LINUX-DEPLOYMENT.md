@@ -1,9 +1,19 @@
 # SML-04 Linux trusted host deployment contract
 
-Status: NOT DEPLOYED / OPEN.
+Status: PARTIALLY PROVISIONED / OPEN (Ubuntu evidence 2026-11-22).
 
 This is a specification for an administrator, **not** authorization to create users,
 change ownership, grant sudo access, or start a service on a user's machine.
+
+## Observed provisioning gate (2026-11-22)
+
+- PASS: distinct non-root accounts: host UID 997/GID 973; worker UID 994/GID 972.
+- PASS: private root, memory and keys directories owned by host and mode 0700.
+- PASS: socket directory owned by host, group worker, mode 0710.
+- PASS: user-reported 58/58 MSTest regression at commit `6da6d37`.
+- PENDING: key file, live host, socket policy, authorized memory read, outsider/worker denial and key rotation.
+- Evidence: `docs/evidence/2026-11-22-sml04-ubuntu-provisioning.md`.
+- Stage remains OPEN. Provisioning does not establish a working trusted boundary.
 
 ## Security identities
 
