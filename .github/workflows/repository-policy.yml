@@ -20,3 +20,18 @@ jobs:
         run: python3 -m unittest discover -s tests/policy -p 'test_*.py' -v
       - name: Check tracked files and P0 governance contract
         run: python3 scripts/check_repository_policy.py
+      - name: Generate read-only governance inventory and CI dashboard
+        if: always()
+        run: |
+          python3 scripts/governance_inventory.py --json-out "$RUNNER_TEMP/governance-inventory.json" --markdown-out "$RUNNER_TEMP/governance-summary.md"
+          cat "$RUNNER_TEMP/governance-summary.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve governance inventory for audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-inventory
+          path: |
+            ${{ runner.temp }}/governance-inventory.json
+            ${{ runner.temp }}/governance-summary.md
+          if-no-files-found: warn
+          retention-days: 30
