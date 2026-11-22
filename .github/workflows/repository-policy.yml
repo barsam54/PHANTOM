@@ -25,6 +25,11 @@ jobs:
         run: |
           python3 scripts/governance_inventory.py --json-out "$RUNNER_TEMP/governance-inventory.json" --markdown-out "$RUNNER_TEMP/governance-summary.md"
           cat "$RUNNER_TEMP/governance-summary.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Probe all ten GOV-P0 phase steps without false acceptance
+        if: always()
+        run: |
+          python3 scripts/governance_phase0_probe.py --json-out "$RUNNER_TEMP/governance-phase0-ten-steps.json" --summary-out "$RUNNER_TEMP/governance-phase0-ten-steps.md"
+          cat "$RUNNER_TEMP/governance-phase0-ten-steps.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Preserve governance inventory for audit
         if: always()
         uses: actions/upload-artifact@v4
@@ -33,5 +38,7 @@ jobs:
           path: |
             ${{ runner.temp }}/governance-inventory.json
             ${{ runner.temp }}/governance-summary.md
+            ${{ runner.temp }}/governance-phase0-ten-steps.json
+            ${{ runner.temp }}/governance-phase0-ten-steps.md
           if-no-files-found: warn
           retention-days: 30
