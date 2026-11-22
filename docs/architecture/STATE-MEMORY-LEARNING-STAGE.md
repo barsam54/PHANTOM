@@ -110,9 +110,16 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 - Added `ResearchMemoryStore` (`a512664`), a minimal immutable JSON manifest store in a caller-supplied absolute external directory. Each record includes schema version and the existing provenance/admission contract.
 - Writes use `FileMode.CreateNew` to reject duplicate experiment IDs; reads revalidate the schema, experiment identity, admission rules and evidence-file SHA-256.
 - Added three tests (`9c76c5b`): persistence/readback across new store instances, duplicate rejection and evidence tampering; unsafe/unknown experiment IDs; unsupported schema.
-- **PENDING HOST BUILD AND TEST**: expected total 40 if the new tests compile and pass. No SML-03/SML-04 closure is claimed.
+- **HOST PASS (2026-11-22)**: 40/40 succeeded after correcting missing-directory read behavior (initial run 39/40; root cause documented). Evidence: `docs/evidence/2026-11-22-memory-store-failure.md` and `docs/evidence/2026-11-22-memory-store-verification.md`. No SML-03/SML-04 closure is claimed.
 - **Security and durability limits:** caller must secure the storage directory; this slice has no authorization boundary, signature verification, multi-process transaction protocol, symlink hardening, fsync guarantee, schema migration, or crash/power-loss recovery test. It is a local manifest store, not a production multi-tenant memory service or learning engine.
 - Do not attach this store automatically to Agent Framework workflows until access policy and provenance authenticity are verified.
+
+## Research cutoff-scoped retrieval (2026-11-22)
+
+- Added `ResearchMemoryStore.ReadForResearchAsync` (`d6ab90d`), requiring an explicit UTC research cutoff. It reuses validated readback, then rejects observations or stored research cutoffs beyond the caller's permitted cutoff and rejects non-training partitions.
+- Added positive and negative test cases (`bd36157`) for permitted read, disallowed earlier cutoff and non-UTC request.
+- **PENDING HOST BUILD/TEST**: expected total 41 tests. No acceptance gate is closed by unverified code.
+- **Limit:** the caller supplies the cutoff. This is an eligibility guard, **not authentication, tenant authorization, or a trust boundary**. An authenticated policy context and storage access restrictions remain required.
 
 ## Implementation order
 
