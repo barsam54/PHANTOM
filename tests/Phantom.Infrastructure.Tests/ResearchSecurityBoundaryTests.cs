@@ -74,4 +74,44 @@ public sealed class ResearchSecurityBoundaryTests
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
         }
     }
+    [TestMethod]
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("macos")]
+    public async Task MemoryManifestIsCreatedPrivateAndSymlinkAncestorIsRejected()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS()) return;
+        string root = Path.Combine(Path.GetTempPath(), "phantom-secure-store-" + Guid.NewGuid().ToString("N"));
+        string link = root + "-link";
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.SetUnixFileMode(root, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            string evidence = Path.Combine(root, "proof.txt");
+            byte[] bytes = System.Text.Encoding.UTF8.GetBytes("private evidence");
+            await File.WriteAllBytesAsync(evidence, bytes);
+            File.SetUnixFileMode(evidence, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            string memory = Path.Combine(root, "memory");
+            Directory.CreateDirectory(memory);
+            File.SetUnixFileMode(memory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            DateTimeOffset observed = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+            var candidate = new ResearchMemoryCandidate("exp-private", "v1",
+                new Uri(evidence).AbsoluteUri, Convert.ToHexString(SHA256.HashData(bytes)),
+                observed, observed.AddDays(1), "train", true);
+            await new ResearchMemoryStore(memory).SaveAsync(candidate);
+            ResearchStorageBoundary.VerifyPrivateDirectory(memory);
+            string manifest = Path.Combine(memory, "exp-private.json");
+            UnixFileMode mode = File.GetUnixFileMode(manifest);
+            Assert.AreEqual(UnixFileMode.UserRead | UnixFileMode.UserWrite, mode);
+
+            Directory.CreateSymbolicLink(link, root);
+            Assert.ThrowsExactly<UnauthorizedAccessException>(() =>
+                ResearchStorageBoundary.VerifyPrivateDirectory(Path.Combine(link, "memory")));
+        }
+        finally
+        {
+            if (Directory.Exists(link)) Directory.Delete(link);
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
 }
