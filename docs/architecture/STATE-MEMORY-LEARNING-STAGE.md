@@ -215,3 +215,10 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - **Bypass resistance:** signed grant read path and scoped issuer are present, but `ResearchMemoryStore.ReadAsync` remains a public lower-level API; hostile in-process plugins could bypass the facade. **Requires a separate trusted host process/API and OS identity boundary**; not closed.
 - **Filesystem checks:** `ResearchStorageBoundary.VerifyPrivateDirectory` rejects Unix storage directory/file group/other permissions and symlinks (`8cc052b`). It is an explicit preflight, not yet wired to a deployed host; it does not prove containment against hostile parent paths, race conditions, or same-UID code.
 - Positive/negative tests added (`3cdad97`); **PENDING HOST BUILD/TEST**. No claims of production deployment, secure authentication, process isolation, complete key rotation, or SML-04 closure. No release.
+
+## Unix platform analyzer failure and correction (2026-11-22)
+
+- **Observed host failure:** Ubuntu `dotnet test --project tests/Phantom.Infrastructure.Tests/Phantom.Infrastructure.Tests.csproj --no-progress` did not reach test execution. CA1416 build errors on `File.GetUnixFileMode` in `ResearchSigningKeyLoader.cs:22` and `ResearchStorageBoundary.cs:22,32`; MSBuild exited 1.
+- **Root cause:** platform analyzer did not recognize the manually combined Linux/macOS guard as a sufficient platform guarantee.
+- **Correction:** explicit `[SupportedOSPlatform("linux")]` and `[SupportedOSPlatform("macos")]` annotations on Unix-only classes and corresponding test method (`2e7e43f`, `4daeb42`, `5b8d395`).
+- **PENDING HOST BUILD/TEST** after correction. Do not mark the four security workstreams or SML-04 PASS; deployment isolation still OPEN.
