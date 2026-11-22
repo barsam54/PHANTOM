@@ -9,9 +9,9 @@ Updated: 2026-11-22
 - Docker 29.1.3 installed: PASS (daemon/container execution not verified).
 - .NET SDK 10.0.115 installed: PASS.
 - Git SSH transport and GitHub CLI authentication as barsam54: PASS (reported host output).
-- Local MSTest execution via Microsoft.Testing.Platform: PASS, 1 succeeded / 0 failed (reported 2026-11-22).
+- Local MSTest execution via Microsoft.Testing.Platform: PASS, 4 succeeded / 0 failed / 0 skipped (reported 2026-11-22); includes two workflow behavior tests, one null-input test, and one test-configuration test.
 - Infrastructure test project committed and pushed: PASS, commit `eb883ddd9b99de345d63b14ebcc7399625acff13` (verified in GitHub).
-- Repository Policy Guard: six earlier main-branch push runs reported successful (GitHub CLI output).
+- Repository Policy Guard: successful push runs for commits `eb883dd` (run 44978589860), `71be924` (44978869519), and `a3a7b99` (44978877041), as reported by GitHub CLI.
 - Repository policy checker: five unit tests passed in earlier reported execution.
 
 ## Repository configuration
@@ -20,19 +20,20 @@ Updated: 2026-11-22
 - `Directory.Build.props`: net10.0, nullable, implicit usings, warnings as errors, deterministic builds.
 - `.gitignore`: excludes build outputs, test results, local secrets, local research datasets, and Python caches.
 - `tests/Phantom.Infrastructure.Tests/`: MSTest project uses `EnableMSTestRunner=true` and `OutputType=Exe`.
-- The one passing infrastructure test checks test-project configuration; it does not validate an Agent Framework workflow.
+- `Microsoft.Agents.AI` and `Microsoft.Agents.AI.Workflows` 1.28.0 restored and built successfully on .NET 10 (reported host output); package project committed as `e4dd2d8`.
+- First two-executor Agent Framework workflow committed; 4 MSTest tests passed locally, including output and repeatability checks (reported host output).
 
 ## Open acceptance gates
 
-- CI run specifically associated with commit `eb883dd`: NOT VERIFIED (`gh run list --commit eb883dd` returned `no runs found`).
+- CI run for latest Agent Framework and workflow commits: NOT VERIFIED at this checkpoint.
 - Full solution restore/build: NOT VERIFIED.
-- Microsoft Agent Framework workflow execution: NOT RUN.
+- Microsoft Agent Framework workflow execution: PASS for initial deterministic two-executor smoke test only; full workflow evaluation remains OPEN.
 - Agent/workflow evaluation: NOT RUN.
 - Docker daemon and container smoke test: NOT RUN.
-- Evidence-producing deterministic repeatability test: NOT RUN.
+- Deterministic repeatability: initial local test PASS; persisted experiment evidence and independent rerun: NOT VERIFIED.
 - Branch protection: BLOCKED by GitHub plan for this private repository (HTTP 403). Existing Actions detect violations but do not prevent direct pushes.
 
-No overall software or architecture PASS is claimed. No Microsoft Agent Framework package version is pinned until verified and restored.
+No overall software or architecture PASS is claimed. Agent Framework package version 1.28.0 is pinned in the project and was restored/built; full workflow evaluation remains OPEN.
 
 ## Official references
 
