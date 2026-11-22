@@ -25,7 +25,7 @@ public sealed class WorkflowObservabilityTests
             Assert.IsTrue(result.Passed);
             Activity trace = completed.Single(activity => activity.OperationName == "phantom.experiment.evaluate");
             Assert.AreEqual("TRACE-001", trace.GetTagItem("phantom.experiment.id"));
-            Assert.AreEqual(true, trace.GetTagItem("phantom.evaluation.passed"));
+            Assert.IsTrue(trace.GetTagItem("phantom.evaluation.passed") is true);
             Assert.AreEqual(ActivityStatusCode.Ok, trace.Status);
             Assert.IsFalse(trace.TagObjects.Any(tag => tag.Value?.ToString()?.Contains("MOTNAHP", StringComparison.Ordinal) == true));
         }
@@ -50,7 +50,7 @@ public sealed class WorkflowObservabilityTests
             ExperimentResult result = await FirstWorkflow.RunWithEvidenceAsync(request, "WRONG", directory);
             Assert.IsFalse(result.Passed);
             Activity trace = completed.Single(activity => activity.OperationName == "phantom.experiment.evaluate");
-            Assert.AreEqual(false, trace.GetTagItem("phantom.evaluation.passed"));
+            Assert.IsFalse(trace.GetTagItem("phantom.evaluation.passed") is true);
             Assert.AreEqual(ActivityStatusCode.Error, trace.Status);
         }
         finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
