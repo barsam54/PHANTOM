@@ -33,3 +33,7 @@ logs/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+
+# Python policy-check bytecode caches
+**/__pycache__/
+*.py[cod]
