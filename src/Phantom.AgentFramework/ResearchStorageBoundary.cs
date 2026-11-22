@@ -19,6 +19,13 @@ public static class ResearchStorageBoundary
         string directory = Path.GetFullPath(absoluteDirectory);
         if (!Directory.Exists(directory))
             throw new DirectoryNotFoundException(directory);
+        // A private leaf is insufficient if an ancestor redirects through a symlink.
+        for (DirectoryInfo? ancestor = new DirectoryInfo(directory); ancestor is not null;
+             ancestor = ancestor.Parent)
+        {
+            if ((ancestor.Attributes & FileAttributes.ReparsePoint) != 0)
+                throw new UnauthorizedAccessException("Storage path ancestors must not be symlinks.");
+        }
         var info = new DirectoryInfo(directory);
         if ((info.Attributes & FileAttributes.ReparsePoint) != 0)
             throw new UnauthorizedAccessException("Storage directory symlinks are forbidden.");
