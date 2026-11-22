@@ -36,7 +36,7 @@ public sealed class WorkflowMemoryIntegrationTests
                 await reopened.ReadForAuthorizedExperimentAsync(
                     "workflow-exp-1", "workflow-exp-1", cutoff);
             Assert.AreEqual(candidate, restored);
-            Assert.AreEqual(actual, await File.ReadAllTextAsync(new Uri(restored.EvidenceLocation).LocalPath));
+            Assert.AreEqual("MOTNAHP", await File.ReadAllTextAsync(new Uri(restored.EvidenceLocation).LocalPath));
 
             await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(() =>
                 reopened.ReadForAuthorizedExperimentAsync(
