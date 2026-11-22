@@ -234,3 +234,11 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - **HOST PASS:** Ubuntu host pulled through `514e286` and ran the full infrastructure suite: **51/51 succeeded, 0 failed, 0 skipped**, duration 1s 926ms.
 - Evidence: `docs/evidence/2026-11-22-research-security-boundaries-verification.md` (`d62809d`).
 - This closes the pending build/test verification for the implemented identity-claim issuer, Unix key permission loader and storage permission preflight. It does **not** close SML-04: host authentication, process/OS isolation, key lifecycle and lower-level store bypass restrictions are still not deployed or verified. No release.
+
+## Private memory manifest creation and ancestor symlink guard (2026-11-22)
+
+- `ResearchMemoryStore.SaveAsync` now sets `FileStreamOptions.UnixCreateMode = 0600` on Linux/macOS when creating its atomic temporary manifest; the published manifest inherits owner-only mode (`b842302`). This addresses a real gap: private-directory preflight previously could reject newly created manifests under a permissive default umask.
+- `ResearchStorageBoundary` checks each ancestor of the storage directory for symlinks (`9310e19`); this is defense-in-depth, **not** a race-free filesystem sandbox.
+- Added regression test for published manifest mode, private storage preflight and symlink ancestor denial (`16100fb`).
+- **PENDING HOST BUILD/TEST**. The prior 51/51 result predates these changes.
+- **Still OPEN:** dedicated trusted process and authenticated endpoint, host deployment, cross-UID access denial, symlink/TOCTOU-resistant filesystem operations, and key lifecycle. No SML-04 closure or release.
