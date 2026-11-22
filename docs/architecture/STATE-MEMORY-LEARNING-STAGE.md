@@ -121,6 +121,13 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 - **HOST PASS (2026-11-22)**: full suite 41/41 succeeded, 0 failed/skipped, duration 1s 928ms; evidence: `docs/evidence/2026-11-22-memory-scoped-read-verification.md`. The policy test scope passed, but SML-04 remains OPEN for authenticated authorization and experiment isolation.
 - **Limit:** the caller supplies the cutoff. This is an eligibility guard, **not authentication, tenant authorization, or a trust boundary**. An authenticated policy context and storage access restrictions remain required.
 
+## Explicit experiment-scope retrieval (2026-11-22)
+
+- Added `ReadForAuthorizedExperimentAsync` (`3752242`), which rejects a requested experiment ID not matching the caller-supplied authorized experiment ID **before opening any file**. It then applies existing temporal and evidence checks.
+- Added a positive/negative MSTest case (`24be149`), including cross-experiment and missing authorization scope.
+- **PENDING HOST BUILD/TEST:** expected full suite 42 tests. No SML-04 closure yet.
+- **Security boundary:** this is a scoped-read API, not authentication. The caller must establish the authorized experiment ID from a trusted identity/policy service and restrict access to lower-level `ReadAsync` and filesystem paths. Without that, a caller could supply its own authorization ID. No end-to-end tenant security claim is made.
+
 ## Implementation order
 
 1. Inspect pinned C# Agent Framework APIs and current workflow construction to select supported state isolation and checkpoint primitives.
