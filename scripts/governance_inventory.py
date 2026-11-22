@@ -50,6 +50,14 @@ def inventory(root=ROOT):
             for cap in contract["capabilities"]
         ],
         "historical_evidence_files_found": len(evidence_files),
+        "evidence_integrity_inventory": [
+            {"path": p.relative_to(root).as_posix(),
+             "sha256": digest(p),
+             "bytes": p.stat().st_size,
+             "verified": False,
+             "reason": "File integrity fingerprint only; execution provenance is not verified"}
+            for p in evidence_files
+        ],
         "stage_filename_hints_unverified": hints,
         "historical_evidence_verified": False,
         "dashboard": {"type": "GitHub Actions step summary",
