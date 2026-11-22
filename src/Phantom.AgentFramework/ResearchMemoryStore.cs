@@ -80,6 +80,27 @@ public sealed class ResearchMemoryStore
         return record.Candidate;
     }
 
+    /// <summary>
+    /// Policy-scoped retrieval for a caller whose identity was authenticated elsewhere.
+    /// This is not an authentication or filesystem authorization boundary.
+    /// </summary>
+    public async Task<ResearchMemoryCandidate> ReadForResearchAsync(
+        string experimentId,
+        DateTimeOffset allowedCutoffUtc,
+        CancellationToken cancellationToken = default)
+    {
+        if (allowedCutoffUtc.Offset != TimeSpan.Zero)
+            throw new ArgumentException("Research cutoff must be UTC.", nameof(allowedCutoffUtc));
+
+        ResearchMemoryCandidate candidate = await ReadAsync(experimentId, cancellationToken);
+        if (candidate.ObservationUtc > allowedCutoffUtc ||
+            candidate.ResearchCutoffUtc > allowedCutoffUtc ||
+            !string.Equals(candidate.DatasetPartition, "train", StringComparison.Ordinal))
+            throw new UnauthorizedAccessException("Research memory is outside the permitted cutoff or split.");
+
+        return candidate;
+    }
+
     private string PathFor(string experimentId)
     {
         if (string.IsNullOrWhiteSpace(experimentId) || !SafeId.IsMatch(experimentId))
