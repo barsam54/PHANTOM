@@ -39,6 +39,11 @@ class GovernanceInventoryTests(unittest.TestCase):
         self.assertEqual("OPEN", record["decision"])
         self.assertFalse(record["historical_evidence_verified"])
         self.assertEqual(1, record["historical_evidence_files_found"])
+        self.assertEqual(1, len(record["evidence_integrity_inventory"]))
+        self.assertEqual("sml02-pass-claimed.md",
+            Path(record["evidence_integrity_inventory"][0]["path"]).name)
+        self.assertEqual(64, len(record["evidence_integrity_inventory"][0]["sha256"]))
+        self.assertFalse(record["evidence_integrity_inventory"][0]["verified"])
         self.assertEqual("READ_ONLY_DISCOVERY_NOT_ACCEPTANCE", record["kind"])
         self.assertTrue(all(not cap["verified"] for cap in record["capabilities"]))
         self.assertFalse(record["dashboard"]["projects_synced"])
