@@ -17,7 +17,10 @@ public static class EvaluatedResearchWorkflow
         DateTimeOffset researchCutoffUtc,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
+        ExperimentContract.Validate(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(evidenceDirectory);
+        if (!Path.IsPathFullyQualified(evidenceDirectory))
+            throw new ArgumentException("Evidence directory must be absolute.", nameof(evidenceDirectory));
         ArgumentException.ThrowIfNullOrWhiteSpace(memoryDirectory);
         if (!Path.IsPathFullyQualified(memoryDirectory))
             throw new ArgumentException("Memory directory must be absolute.", nameof(memoryDirectory));
