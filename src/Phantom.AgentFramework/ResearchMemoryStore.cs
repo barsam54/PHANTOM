@@ -37,9 +37,17 @@ public sealed class ResearchMemoryStore
         string temporaryPath = Path.Combine(directory, $".{candidate.ExperimentId}.{Guid.NewGuid():N}.tmp");
         try
         {
-            await using (FileStream stream = new(
-                temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None,
-                bufferSize: 4096, options: FileOptions.Asynchronous))
+            var options = new FileStreamOptions
+            {
+                Mode = FileMode.CreateNew,
+                Access = FileAccess.Write,
+                Share = FileShare.None,
+                BufferSize = 4096,
+                Options = FileOptions.Asynchronous
+            };
+            if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+                options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            await using (FileStream stream = new(temporaryPath, options))
             {
                 await JsonSerializer.SerializeAsync(stream,
                     new StoredResearchMemory(ResearchMemoryAdmission.SchemaVersion, candidate),
