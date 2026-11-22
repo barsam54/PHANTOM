@@ -85,7 +85,7 @@ public sealed class ExperimentEvidenceStoreTests
             ExperimentResult? afterDuplicate = JsonSerializer.Deserialize<ExperimentResult>(
                 await File.ReadAllTextAsync(final));
             Assert.AreEqual(saved, afterDuplicate);
-            Assert.AreEqual(2, Directory.GetFiles(directory).Length);
+            Assert.HasCount(2, Directory.GetFiles(directory));
         }
         finally
         {
