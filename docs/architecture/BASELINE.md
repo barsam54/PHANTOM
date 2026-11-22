@@ -199,3 +199,29 @@ Storage rules:
 
 This section defines repository hygiene, not proof that external storage,
 backup recovery, or the test infrastructure has been verified.
+
+### 12. P0 — Unified Development Governance Controller (proposed implementation contract; OPEN)
+
+Scope: **whole-project development governance**, separate from PHANTOM research-product State/Memory/Learning (SML) infrastructure. SML-01..06 implementation, existing PASS evidence and baselines remain unchanged. This P0 contract is an addition for governance; it does not close or reopen an SML gate. It becomes binding for subsequent implementation only when this change is reviewed and merged.
+
+**Five simultaneous, complementary capabilities in ONE end-to-end lifecycle:**
+1. **Dashboard** — GitHub Actions/Projects show actual stage execution, accepted/pending/blocked criteria, dependencies, alerts and last checkpoint. Dashboard is a read model, never independent acceptance authority.
+2. **Evidence and progress** — discover existing work and stage criteria first; link code SHA, tests, artifacts, source provenance and evidence; reuse evidence only under verified scope and identical relevant inputs; do not infer PASS from an unexamined document.
+3. **End-to-end phase execution** — deterministic contract: discover/preflight -> check baseline and dependencies -> plan -> authorized implementation -> build/integration/negative/regression tests -> evidence validation -> acceptance -> publish and durable checkpoint. Resume without duplicating externally visible side effects; cap retries. Model-backed coding worker and durable checkpoint backend are **NOT IMPLEMENTED**.
+4. **Mandatory enforcement with actionable denials** — all accepted changes must pass governance acceptance. Every denial supplies `code, stage, reason, evidence, action, resume`; repair only within preauthorized scope. Branch rules/required checks must be tested as an actual merge barrier; GitHub Actions alone cannot prohibit direct pushes. This control is **NOT YET END-TO-END ENFORCED**.
+5. **Fallible baseline governance** — baseline is versioned, reviewable and challengeable by official documentation, reproducible tests and evidence; routine conforming fixes require no baseline edits. A baseline contradiction is flagged and its affected change held pending reviewed amendment; never silently weaken tests to obtain PASS.
+
+**Single authority per fact:** baseline is versioned acceptance specification, Git SHA identifies implementation, CI run identifies test execution, verified evidence proves measured behavior, acceptance decision derives from all required criteria, and dashboard only projects that decision. Chat/agent opinions never override evidence. No ad-hoc alternative orchestrator or second status database.
+
+**Architecture / support boundary:** Microsoft Agent Framework C# workflow/executors/state/checkpoint/HITL are the only orchestration foundation for the *governance workflow*; research workflow stays separately scoped under that same framework. GitHub Actions is CI/trigger and GitHub Projects is visualization, **not** a competing research orchestrator. Official support of framework primitives is not a guarantee of a turnkey governance product. Research SML checkpoints are not governance checkpoints.
+
+**External engineering patterns are advisory, not dependencies:**
+- Microsoft official docs: explicit workflow/executors, checkpoint/restore, state isolation and human approval. Check .NET package-version API compatibility before coding.
+- Anthropic long-running agent harness: initializer + feature inventory, Git commits and durable progress record, fresh-session recovery, scoped incremental changes, automated end-to-end tests. Adapt patterns, not Claude/Anthropic SDK.
+- Tsinghua ChatDev experiential co-learning: store attributed lessons and failure patterns separately from acceptance evidence; use experiences as suggestions subject to independent tests, **never** as automatic PASS or required new framework.
+
+**Adoption/acceptance is a single integration proof:** one real open PHANTOM phase demonstrates existing-evidence reuse, minimal authorized edits, build/test, forced failure with structured denial and recovery, nonduplicated side effects after resume, automatic evidence/commit/PR publication, valid acceptance, and dashboard update. A negative test must prove rejection of missing evidence and rejection of baseline weakening. Until then this P0 gate is **OPEN**, not PASS.
+
+**Operational limits:** no Azure dependency; no mandatory manual commits, evidence bookkeeping or fragmented test commands for normal runs. No autonomous change to critical security policy, accepted scientific metrics, or published baseline without separately reviewed authority. Never assume model use or hosted runners are unlimited/free. No release until entire project approval.
+
+Detailed mapping, denial schema, and source-specific implementation templates: `docs/architecture/GOVERNANCE-CONTROLLER.md` and `docs/architecture/GOVERNANCE-CONTRACT.json`. The existing `scripts/check_repository_policy.py` must evolve as the repository governance admission guard; do not remove its proven layout rules or falsely present the present limited guard as full enforcement.
