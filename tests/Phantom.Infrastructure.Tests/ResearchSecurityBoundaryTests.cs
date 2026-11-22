@@ -193,4 +193,50 @@ public sealed class ResearchSecurityBoundaryTests
         }
     }
 
+    [TestMethod]
+    [SupportedOSPlatform("linux")]
+    public async Task LinuxGrantServerReturnsGrantAndDeniesWrongExperiment()
+    {
+        if (!OperatingSystem.IsLinux()) return;
+        string socketPath = Path.Combine(Path.GetTempPath(), "phantom-service-" + Guid.NewGuid().ToString("N") + ".sock");
+        DateTimeOffset now = new(2026, 11, 22, 0, 0, 0, TimeSpan.Zero);
+        DateTimeOffset cutoff = now.AddDays(-1);
+        var clock = new FixedClock(now);
+        var signer = new SignedResearchMemoryAccess(
+            new ResearchMemoryStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))),
+            RandomNumberGenerator.GetBytes(32), clock);
+        var server = new LinuxResearchGrantServer(new LinuxResearchGrantEndpoint(
+            new LinuxPeerIdentityProvider(new Dictionary<uint, string> { [GetUid()] = "exp-a" }, cutoff),
+            new TrustedResearchGrantIssuer(signer, clock)));
+        using var listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        listener.Bind(new UnixDomainSocketEndPoint(socketPath));
+        listener.Listen(2);
+        try
+        {
+            async Task<string> Exchange(string experiment)
+            {
+                using var client = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+                await client.ConnectAsync(new UnixDomainSocketEndPoint(socketPath));
+                using Socket accepted = await listener.AcceptAsync();
+                Task serve = server.ServeConnectionAsync(accepted);
+                await using var stream = new NetworkStream(client, ownsSocket: false);
+                using var reader = new StreamReader(stream);
+                await using var writer = new StreamWriter(stream) { AutoFlush = true };
+                await writer.WriteLineAsync(System.Text.Json.JsonSerializer.Serialize(
+                    new { experimentId = experiment, cutoffUtc = cutoff }));
+                string response = (await reader.ReadLineAsync()) ?? "";
+                await serve;
+                return response;
+            }
+            string allowed = await Exchange("exp-a");
+            Assert.Contains("grant", allowed);
+            string denied = await Exchange("exp-b");
+            Assert.Contains("denied", denied);
+        }
+        finally
+        {
+            if (File.Exists(socketPath)) File.Delete(socketPath);
+        }
+    }
+
 }
