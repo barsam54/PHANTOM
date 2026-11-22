@@ -1,0 +1,81 @@
+{
+  "schema_version": "phantom.governance.contract.v1",
+  "status": "OPEN",
+  "gate": "GOV-P0",
+  "baseline": "docs/architecture/BASELINE.md",
+  "controller_spec": "docs/architecture/GOVERNANCE-CONTROLLER.md",
+  "orchestrator": "Microsoft Agent Framework C# (planned, not implemented)",
+  "ci": ".github/workflows/repository-policy.yml",
+  "capabilities": [
+    {
+      "id": "dashboard",
+      "state": "OPEN",
+      "proof": "derived GitHub Projects status from verified run manifest"
+    },
+    {
+      "id": "evidence",
+      "state": "OPEN",
+      "proof": "provenance/digest/criterion readback and reuse without duplicate testing"
+    },
+    {
+      "id": "end_to_end",
+      "state": "OPEN",
+      "proof": "one real phase execution through restart-safe acceptance"
+    },
+    {
+      "id": "enforcement",
+      "state": "OPEN",
+      "proof": "negative tests and effective merge barrier"
+    },
+    {
+      "id": "baseline_review",
+      "state": "OPEN",
+      "proof": "documented conflict, controlled amendment, permitted conforming fixes"
+    }
+  ],
+  "phase_steps": [
+    "discover",
+    "baseline_review",
+    "dependencies",
+    "plan",
+    "authorized_execute",
+    "build_and_tests",
+    "evidence",
+    "acceptance",
+    "publish",
+    "checkpoint"
+  ],
+  "decisions": [
+    "PASS",
+    "REPAIRABLE",
+    "BLOCKED",
+    "PENDING"
+  ],
+  "denial_fields": [
+    "code",
+    "stage",
+    "reason",
+    "evidence",
+    "action",
+    "resume"
+  ],
+  "external_patterns": [
+    {
+      "source": "Microsoft",
+      "kind": "official-api",
+      "usage": "workflow/checkpoint/state/HITL; verify pinned C# API"
+    },
+    {
+      "source": "Anthropic",
+      "kind": "engineering-pattern",
+      "usage": "initializer, git progress, durable handoff, incremental tested edits"
+    },
+    {
+      "source": "Tsinghua",
+      "kind": "research-pattern",
+      "usage": "attributed lessons; no self-certification or extra orchestrator"
+    }
+  ],
+  "acceptance": "Single integration test of real phase including forced failure+resume, automatic evidence commit/PR and dashboard sync; negative bypass cases",
+  "release_allowed": false
+}
