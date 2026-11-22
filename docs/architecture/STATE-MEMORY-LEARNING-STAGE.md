@@ -222,3 +222,9 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - **Root cause:** platform analyzer did not recognize the manually combined Linux/macOS guard as a sufficient platform guarantee.
 - **Correction:** explicit `[SupportedOSPlatform("linux")]` and `[SupportedOSPlatform("macos")]` annotations on Unix-only classes and corresponding test method (`2e7e43f`, `4daeb42`, `5b8d395`).
 - **PENDING HOST BUILD/TEST** after correction. Do not mark the four security workstreams or SML-04 PASS; deployment isolation still OPEN.
+
+## MSTEST0037 follow-up build failure (2026-11-22)
+
+- Observed Ubuntu host `dotnet test` failure after pulling `9983395`: `ResearchSecurityBoundaryTests.cs:34` MSTEST0037 rejects `Assert.IsTrue(grant.Contains('.'))`.
+- Root cause: project treats MSTest analyzer recommendations as errors.
+- Fixed test assertion to `Assert.Contains('.', grant)` (`c1337cf`). **PENDING HOST BUILD/TEST**. No test result claimed.
