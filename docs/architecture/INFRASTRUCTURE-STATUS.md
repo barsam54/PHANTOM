@@ -27,7 +27,7 @@ Updated: 2026-11-22
 ## Latest stage pending verification
 
 - Workflow admission policy: 22/22 local tests PASS, user-reported 2026-11-22. Structured denial guard accepted within request/path validation scope.
-- Workflow observability: `ActivitySource` instrumentation added with two new tests for PASS/FAIL tracing and omission of input/output payload from trace tags. Build and tests PENDING host verification; do not claim full Agent Framework model observability or exporter setup.
+- Workflow observability: `ActivitySource` instrumentation and two tests for PASS/FAIL tracing and omission of input/output payload from trace tags. Host test execution reported 24/24 PASS on 2026-11-22 at commit `652fcf9`. Stage remains OPEN: earlier tests observed more than one matching Activity; the revised tests accept multiple traces but the cause and cardinality contract are unverified. Investigate and resolve before closing; do not claim model observability or exporter setup.
 - Stage acceptance policy added to `docs/architecture/BASELINE.md`: stage-specific tests, regression, integration when applicable, negative cases, and evidence required.
 
 ## Open acceptance gates
