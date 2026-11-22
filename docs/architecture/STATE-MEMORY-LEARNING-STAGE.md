@@ -125,7 +125,7 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 
 - Added `ReadForAuthorizedExperimentAsync` (`3752242`), which rejects a requested experiment ID not matching the caller-supplied authorized experiment ID **before opening any file**. It then applies existing temporal and evidence checks.
 - Added a positive/negative MSTest case (`24be149`), including cross-experiment and missing authorization scope.
-- **PENDING HOST BUILD/TEST:** expected full suite 42 tests. No SML-04 closure yet.
+- **HOST PASS (2026-11-22):** full suite 42/42 succeeded, 0 failed/skipped; duration 1s 882ms. Evidence: `docs/evidence/2026-11-22-memory-experiment-scope-verification.md`. SML-04 remains OPEN because authenticated authorization and lower-level access restrictions are not implemented.
 - **Security boundary:** this is a scoped-read API, not authentication. The caller must establish the authorized experiment ID from a trusted identity/policy service and restrict access to lower-level `ReadAsync` and filesystem paths. Without that, a caller could supply its own authorization ID. No end-to-end tenant security claim is made.
 
 ## Implementation order
