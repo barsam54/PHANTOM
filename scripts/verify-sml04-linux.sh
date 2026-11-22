@@ -14,6 +14,14 @@ sudo -n true || { echo "FAIL passwordless sudo required for verification"; exit 
 [[ "$(id -u "$PHANTOM_HOST_USER")" != "$(id -u "$PHANTOM_WORKER_USER")" ]] || { echo 'FAIL same UID'; exit 1; }
 [[ "$(id -u "$PHANTOM_HOST_USER")" != 0 ]] || { echo 'FAIL root host'; exit 1; }
 [[ "$PHANTOM_SOCKET_PATH" = /* && "$PHANTOM_MEMORY_DIR" = /* && "$PHANTOM_KEY_PATH" = /* ]] || exit 1
+[[ "$(stat -c %u "$PHANTOM_KEY_PATH")" = "$(id -u "$PHANTOM_HOST_USER")" ]] || { echo 'FAIL key owner'; exit 1; }
+[[ "$(stat -c %a "$PHANTOM_KEY_PATH")" = 600 || "$(stat -c %a "$PHANTOM_KEY_PATH")" = 400 ]] || { echo 'FAIL key mode'; exit 1; }
+[[ "$(stat -c %u "$PHANTOM_MEMORY_DIR")" = "$(id -u "$PHANTOM_HOST_USER")" ]] || { echo 'FAIL memory owner'; exit 1; }
+[[ "$(stat -c %a "$PHANTOM_MEMORY_DIR")" = 700 ]] || { echo 'FAIL memory mode'; exit 1; }
+[[ "$(stat -c %a "$(dirname "$PHANTOM_SOCKET_PATH")")" = 710 ]] || { echo 'FAIL socket directory mode'; exit 1; }
+[[ "$(stat -c %a "$PHANTOM_SOCKET_PATH")" = 660 ]] || { echo 'FAIL socket mode'; exit 1; }
+[[ "$(stat -c %u "$PHANTOM_SOCKET_PATH")" = "$(id -u "$PHANTOM_HOST_USER")" ]] || { echo 'FAIL socket owner'; exit 1; }
+[[ "$(stat -c %g "$PHANTOM_SOCKET_PATH")" = "$(id -g "$PHANTOM_WORKER_USER")" ]] || { echo 'FAIL socket group'; exit 1; }
 sudo -n -u "$PHANTOM_HOST_USER" test -r "$PHANTOM_KEY_PATH"
 sudo -n -u "$PHANTOM_HOST_USER" test -d "$PHANTOM_MEMORY_DIR"
 if sudo -n -u "$PHANTOM_WORKER_USER" test -r "$PHANTOM_KEY_PATH"; then echo 'FAIL worker reads key'; exit 1; fi
