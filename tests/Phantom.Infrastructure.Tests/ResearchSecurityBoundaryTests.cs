@@ -31,7 +31,7 @@ public sealed class ResearchSecurityBoundaryTests
             }, authenticated ? "verified-host" : null));
 
         string grant = issuer.Issue(Principal(true, "exp-a"), "exp-a", cutoff, TimeSpan.FromMinutes(5));
-        Assert.IsTrue(grant.Contains('.'));
+        Assert.Contains('.', grant);
         Assert.ThrowsExactly<UnauthorizedAccessException>(() =>
             issuer.Issue(Principal(false, "exp-a"), "exp-a", cutoff, TimeSpan.FromMinutes(5)));
         Assert.ThrowsExactly<UnauthorizedAccessException>(() =>
