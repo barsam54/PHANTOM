@@ -205,5 +205,5 @@ These describe framework concepts; concrete C# APIs must be verified against the
 
 - Security review found that `SignedResearchMemoryAccess.ReadAsync` accepted a **caller-supplied current time**; an untrusted caller could supply an old UTC value to bypass expiration even with a valid signature.
 - Fixed in `d8b4b93`: the read path obtains current UTC from an injected `TimeProvider` (default `TimeProvider.System`); no request parameter can override the expiry clock. Tests use an isolated fixed clock (`7a93b89`) to verify expiration deterministically.
-- **PENDING HOST BUILD/TEST**. Prior 49/49 host PASS applies to the earlier vulnerable interface, not this fix.
+- **HOST PASS (2026-11-22):** corrected trusted-clock implementation verified on Ubuntu, full infrastructure suite 49/49 succeeded, 0 failed/skipped, duration 2s 006ms. Evidence: `docs/evidence/2026-11-22-signed-grant-trusted-clock-verification.md`. SML-04 remains OPEN.
 - Security condition: production host must not allow untrusted callers to construct this service with an attacker-controlled `TimeProvider`, key, or store. Key custody, issuer separation and OS isolation remain OPEN; no release.
