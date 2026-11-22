@@ -36,5 +36,46 @@ class RepositoryPolicyTests(unittest.TestCase):
                 self.assertTrue(any(code == "SENSITIVE_OR_BINARY_ARTIFACT" for code, _ in policy.check_path(path)))
 
 
+    def test_governance_contract_is_valid(self):
+        self.assertEqual([], policy.check_governance_contract())
+
+    def test_governance_missing_contract_explains_remedy(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp:
+            issues = policy.check_governance_contract(Path(temp))
+        self.assertEqual("GOV_CONTRACT_MISSING", issues[0]["code"])
+        for field in ("code", "stage", "reason", "evidence", "action", "resume"):
+            self.assertTrue(issues[0][field])
+
+    def test_governance_rejects_premature_pass(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "docs/architecture").mkdir(parents=True)
+            source = policy.ROOT / policy.GOVERNANCE_CONTRACT
+            doc = json.loads(source.read_text(encoding="utf-8"))
+            doc["status"] = "PASS"
+            (root / policy.GOVERNANCE_CONTRACT).write_text(json.dumps(doc), encoding="utf-8")
+            (root / "docs/architecture/BASELINE.md").write_text("test")
+            (root / "docs/architecture/GOVERNANCE-CONTROLLER.md").write_text("test")
+            issues = policy.check_governance_contract(root)
+        self.assertIn("GOV_PREMATURE_ACCEPTANCE", [i["code"] for i in issues])
+
+    def test_governance_rejects_missing_capability(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "docs/architecture").mkdir(parents=True)
+            source = policy.ROOT / policy.GOVERNANCE_CONTRACT
+            doc = json.loads(source.read_text(encoding="utf-8"))
+            doc["capabilities"] = doc["capabilities"][:-1]
+            (root / policy.GOVERNANCE_CONTRACT).write_text(json.dumps(doc), encoding="utf-8")
+            (root / "docs/architecture/BASELINE.md").write_text("test")
+            (root / "docs/architecture/GOVERNANCE-CONTROLLER.md").write_text("test")
+            issues = policy.check_governance_contract(root)
+        self.assertIn("GOV_CAPABILITY_MISMATCH", [i["code"] for i in issues])
+
 if __name__ == "__main__":
     unittest.main()
