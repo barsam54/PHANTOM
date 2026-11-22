@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Agents.AI;
@@ -7,6 +8,9 @@ namespace Phantom.AgentFramework;
 
 public static class FirstWorkflow
 {
+    public const string ActivitySourceName = "Phantom.AgentFramework.Workflow";
+    private static readonly ActivitySource Telemetry = new(ActivitySourceName, "1.0.0");
+
     /// <summary>Executes the Agent Framework workflow and records its evaluated output.</summary>
     public static async Task<ExperimentResult> RunWithEvidenceAsync(
         ExperimentRequest request,
@@ -19,6 +23,9 @@ public static class FirstWorkflow
             throw new WorkflowAdmissionException(admission.Denial!);
         ExperimentContract.Validate(request);
         cancellationToken.ThrowIfCancellationRequested();
+        using Activity? activity = Telemetry.StartActivity("phantom.experiment.evaluate");
+        activity?.SetTag("phantom.experiment.id", request.ExperimentId);
+        activity?.SetTag("phantom.workflow.kind", "uppercase-reverse");
 
         string actual = await RunAsync(request.InputSpecification);
         var evaluator = new LocalEvaluator(EvalChecks.ContainsExpected(true));
@@ -60,8 +67,19 @@ public static class FirstWorkflow
             actual, expectedOutput, evaluation.Total, evaluation.Passed,
             evaluation.Failed, evaluation.AllPassed, exactMatch, fingerprint);
 
-        return await ExperimentEvidenceStore.SaveAsync(
-            request, testResult, passed, evidenceDirectory, cancellationToken, details);
+        try
+        {
+            ExperimentResult result = await ExperimentEvidenceStore.SaveAsync(
+                request, testResult, passed, evidenceDirectory, cancellationToken, details);
+            activity?.SetTag("phantom.evaluation.passed", passed);
+            activity?.SetStatus(passed ? ActivityStatusCode.Ok : ActivityStatusCode.Error);
+            return result;
+        }
+        catch (Exception)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error);
+            throw;
+        }
     }
 
     public static async Task<string> RunAsync(string input)
