@@ -20,6 +20,12 @@ Failures must report: `code`, `stage`, `reason`, `action`, and, when available, 
 - GitHub Actions detects violations after a push; it cannot guarantee prevention of direct pushes without enforced branch rules.
 - No additional repository-policy controller or local Git hook is required by the current decision.
 
+## .NET CI verification
+
+- `.github/workflows/dotnet-build-test.yml`: three push runs reported successful by `gh run list` on 2026-11-22: `44986930555`, `44986936161`, `44986944911`.
+- Evidence: `docs/evidence/2026-11-22-ci-verification.md`.
+- This is successful workflow status, not branch protection enforcement or proof of full repository-wide test coverage.
+
 ## Open verification
 
 - Verify GitHub Actions result for new commits after this checkpoint; earlier successful runs do not establish future commit status.
