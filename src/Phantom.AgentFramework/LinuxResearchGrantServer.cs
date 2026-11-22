@@ -14,8 +14,13 @@ namespace Phantom.AgentFramework;
 public sealed class LinuxResearchGrantServer
 {
     private readonly LinuxResearchGrantEndpoint endpoint;
-    public LinuxResearchGrantServer(LinuxResearchGrantEndpoint endpoint) =>
+    private readonly SignedResearchMemoryAccess? memory;
+    public LinuxResearchGrantServer(LinuxResearchGrantEndpoint endpoint,
+        SignedResearchMemoryAccess? memory = null)
+    {
         this.endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
+        this.memory = memory;
+    }
 
     public async Task ServeConnectionAsync(Socket accepted, CancellationToken cancellationToken = default)
     {
@@ -46,10 +51,24 @@ public sealed class LinuxResearchGrantServer
                 DateTimeOffset cutoff = root.GetProperty("cutoffUtc").GetDateTimeOffset();
                 string grant = endpoint.IssueForConnectedPeer(accepted, experiment, cutoff,
                     TimeSpan.FromMinutes(5));
-                await writer.WriteLineAsync(JsonSerializer.Serialize(new { grant }));
+                string operation = root.TryGetProperty("operation", out JsonElement op)
+                    ? op.GetString() ?? "" : "grant";
+                if (operation == "read" && memory is not null)
+                {
+                    // Only the trusted process opens the store; workers receive
+                    // validated research-scoped records, never filesystem paths.
+                    ResearchMemoryCandidate record =
+                        await memory.ReadAsync(grant, experiment, cancellationToken);
+                    await writer.WriteLineAsync(JsonSerializer.Serialize(new { record }));
+                }
+                else if (operation == "grant")
+                    await writer.WriteLineAsync(JsonSerializer.Serialize(new { grant }));
+                else
+                    throw new UnauthorizedAccessException("Unsupported operation.");
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException or JsonException or
-                                       InvalidDataException or ArgumentException or KeyNotFoundException)
+                                       InvalidDataException or ArgumentException or KeyNotFoundException or
+                                       FileNotFoundException)
             {
                 await writer.WriteLineAsync("{\"error\":\"denied\"}");
             }
