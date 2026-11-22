@@ -294,3 +294,10 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - OS separation: host fails startup if worker UID equals host UID; checks private storage and key directory, socket directory 0710 and socket file 0660. Deployment administrator must provision a shared socket group with worker membership and verify ownership, symlink-free ancestors, and cross-UID denial.
 - New executable: `src/Phantom.ResearchSecurityHost`. It serves grants only, not raw memory records. This is not a deployed production service.
 - **PENDING host build, integration tests, cross-UID filesystem test and operational rotation test. SML-04 OPEN.** No release.
+
+## Trusted-process memory retrieval wiring (2026-11-22)
+
+- Host build and 55/55 regression tests verified by Ubuntu terminal output; evidence: `docs/evidence/2026-11-22-security-host-build-verification.md`.
+- Added `read` socket operation: the trusted process validates the kernel UID, experiment scope and cutoff, creates an internal short-lived grant and reads via `SignedResearchMemoryAccess`. Untrusted clients do not receive the signing key or direct filesystem access through this operation.
+- Added negative integration test for missing record; **new changes pending host build/test**.
+- Remaining acceptance requirements: real different-UID deployment, positive read with actual admitted memory, key replacement/restart invalidation, permission-denied tests, socket group ownership verification, resource limits and timeout handling. **SML-04 OPEN**.
