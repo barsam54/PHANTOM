@@ -1,0 +1,28 @@
+name: PHANTOM .NET Build and Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore infrastructure test project and referenced source
+        run: dotnet restore tests/Phantom.Infrastructure.Tests/Phantom.Infrastructure.Tests.csproj
+      - name: Build infrastructure test project and referenced source
+        run: dotnet build tests/Phantom.Infrastructure.Tests/Phantom.Infrastructure.Tests.csproj --configuration Release --no-restore
+      - name: Run MSTest using Microsoft.Testing.Platform
+        run: dotnet test --project tests/Phantom.Infrastructure.Tests/Phantom.Infrastructure.Tests.csproj --configuration Release --no-restore
