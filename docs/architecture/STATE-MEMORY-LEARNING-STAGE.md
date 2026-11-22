@@ -193,3 +193,10 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - Added regression coverage (`a0a6623`) for accepted scope, anonymous identity, cross-experiment access, missing experiment/cutoff, premature cutoff, and non-UTC cutoff.
 - **HOST PASS (2026-11-22):** 48/48 full infrastructure tests succeeded, 0 failed/skipped, duration 2s 095ms. Evidence: `docs/evidence/2026-11-22-authenticated-memory-policy-verification.md`. This does not close SML-04.
 - **Critical boundary:** `ClaimsPrincipal.Identity.IsAuthenticated` is an assertion supplied by the hosting application, not cryptographic verification. This adapter does not authenticate tokens, prevent a malicious in-process caller from constructing claims, restrict direct `ResearchMemoryStore.ReadAsync` access, or enforce OS filesystem permissions. Production SML-04 remains OPEN until a trusted authentication provider, access-controlled entry point, and filesystem isolation are integrated and verified. No release.
+
+## Cryptographically signed scoped research grants (2026-11-22)
+
+- Added `SignedResearchMemoryAccess` (`c5da490`) for **HMAC-SHA256 authenticated**, expiring, experiment-specific read grants with UTC research cutoff. Signature verification is constant-time and precedes file reads. Keys are injected by the host and are not persisted in Git.
+- Added positive and negative tests (`6f17af5`) for valid signed grant, cross-experiment denial, expiration, wrong key, payload tampering, earlier research cutoff, and non-UTC current time.
+- **PENDING HOST BUILD/TEST**. Earlier 48/48 PASS does not cover these changes.
+- **Trust boundaries still OPEN:** the signing operation must be accessible only to the trusted host (the public `Issue` method is not an end-user API); the host must manage key protection, rotation and identity verification. Direct store reads and filesystem access must be denied to untrusted code by process isolation/permissions. This is not an end-to-end authentication deployment and does not close SML-04. No release.
