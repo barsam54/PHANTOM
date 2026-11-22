@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using System.Security.Cryptography;
 
 namespace Phantom.AgentFramework;
@@ -6,6 +7,8 @@ namespace Phantom.AgentFramework;
 /// Loads a host-provisioned signing key from an external file. Rotation requires
 /// replacing the key and restarting the host; existing grants then fail closed.
 /// </summary>
+[SupportedOSPlatform("linux")]
+[SupportedOSPlatform("macos")]
 public static class ResearchSigningKeyLoader
 {
     public static byte[] Load(string absolutePath)
