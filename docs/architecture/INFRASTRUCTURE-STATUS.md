@@ -30,7 +30,7 @@ Updated: 2026-11-22
 - Full solution restore/build: NOT VERIFIED.
 - Microsoft Agent Framework workflow execution: PASS for initial deterministic two-executor smoke test only; full workflow evaluation remains OPEN.
 - Agent/workflow evaluation: NOT RUN.
-- Docker restricted-container smoke: PASS (reported exit code 0; UID/GID 65534, zero effective capabilities, NoNewPrivs=1, no routes, 512 MiB memory, 0.5 CPU, 64 PIDs, root filesystem write denied). Evidence: `docs/evidence/2026-11-22-docker-container-smoke.md`. Explicit network-denial test, writable-home setup, untrusted-code isolation and automated evidence: OPEN.
+- Docker restricted-container smoke: PASS (reported exit code 0; UID/GID 65534, zero effective capabilities, NoNewPrivs=1, no routes, 512 MiB memory, 0.5 CPU, 64 PIDs, root filesystem write denied). Ephemeral non-root .NET workspace with tmpfs and DOTNET_CLI_HOME: PASS (SDK 10.0.404, file round-trip, exit code 0). Evidence: `docs/evidence/2026-11-22-docker-container-smoke.md`. Explicit network-denial test, PHANTOM build/test inside container, untrusted-code isolation and automated evidence: OPEN.
 - Deterministic repeatability: initial local test PASS; persisted experiment evidence and independent rerun: NOT VERIFIED.
 - Branch protection: BLOCKED by GitHub plan for this private repository (HTTP 403). Existing Actions detect violations but do not prevent direct pushes.
 
