@@ -60,6 +60,20 @@ The current PHANTOM `FirstWorkflow.RunAsync` uses `InProcessExecution.RunAsync` 
 
 **Version boundary:** documentation shows the C# surface, but compilation against the repository-pinned `Microsoft.Agents.AI.Workflows` 1.28.0 and observed host execution are still required before marking any API integration PASS.
 
+## Architecture decision: checkpoints are not research memory (2026-11-22)
+
+**Decision:** keep workflow checkpoints, research memory, and learning evidence as distinct stores/contracts. This is required by Baseline §6.
+
+- **Checkpoint:** transient executor/runtime state, pending messages and workflow continuation. Use Microsoft Agent Framework checkpoint APIs. In-memory checkpoint managers are not durable across process restart.
+- **Research memory:** durable, explicitly versioned research observations and experiment outcomes, keyed by experiment ID and content fingerprint, with code/data version, provenance, evaluation status, observation cutoff time, dataset partition and evidence reference. Persist outside Git in a configurable store.
+- **Learning:** an independently measured improvement relative to a frozen baseline and held-out test data; not a count of stored observations.
+
+Memory admission must fail closed for missing provenance, unverified evaluation, incompatible schema, future observation relative to the research cutoff, or held-out/test partition leakage. Retrieval must enforce experiment/partition access and temporal eligibility. No automatic training-memory promotion.
+
+Implementation boundary: checkpoint data must never be used as the authoritative research-memory database. Memory persistence must not introduce a second workflow orchestrator. Before selecting a C# persistence implementation, inspect existing contracts/storage and define schema migration, atomic write, integrity and negative-test behavior.
+
+References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoints and https://learn.microsoft.com/en-us/agent-framework/workflows/state
+
 ## Next checkpoint acceptance slice
 
 1. Add a minimal isolated streaming workflow integration test with in-memory checkpoints; assert checkpoint capture after supersteps.
