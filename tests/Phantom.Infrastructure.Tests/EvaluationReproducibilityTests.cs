@@ -30,7 +30,7 @@ public sealed class EvaluationReproducibilityTests
             Assert.AreEqual(a, persisted);
             Assert.AreEqual(1, persisted.Evaluation?.Passed);
             Assert.AreEqual(0, persisted.Evaluation?.Failed);
-            Assert.AreEqual(true, persisted.Evaluation?.AllPassed);
+            Assert.IsTrue(persisted.Evaluation!.AllPassed);
         }
         finally
         {
@@ -61,8 +61,8 @@ public sealed class EvaluationReproducibilityTests
             Assert.IsFalse(persisted.Passed);
             Assert.AreEqual(0, persisted.Evaluation?.Passed);
             Assert.AreEqual(1, persisted.Evaluation?.Failed);
-            Assert.AreEqual(false, persisted.Evaluation?.AllPassed);
-            Assert.AreEqual(false, persisted.Evaluation?.ExactMatch);
+            Assert.IsFalse(persisted.Evaluation!.AllPassed);
+            Assert.IsFalse(persisted.Evaluation!.ExactMatch);
         }
         finally
         {
