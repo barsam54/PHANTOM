@@ -1,3 +1,4 @@
+using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 
 namespace Phantom.AgentFramework;
@@ -16,10 +17,22 @@ public static class FirstWorkflow
         cancellationToken.ThrowIfCancellationRequested();
 
         string actual = await RunAsync(request.InputSpecification);
-        bool passed = string.Equals(actual, expectedOutput, StringComparison.Ordinal);
-        string testResult = passed
-            ? "Workflow output matched expected output."
-            : "Workflow output did not match expected output.";
+        var evaluator = new LocalEvaluator(EvalChecks.ContainsExpected(true));
+        var item = new EvalItem(request.InputSpecification, actual)
+        {
+            ExpectedOutput = expectedOutput
+        };
+        AgentEvaluationResults evaluation = await evaluator.EvaluateAsync(
+            new[] { item }, "phantom-workflow-evaluation", cancellationToken);
+
+        // ContainsExpected alone allows extra output; exact matching is also required.
+        bool exactMatch = string.Equals(actual, expectedOutput, StringComparison.Ordinal);
+        bool passed = evaluation.AllPassed && evaluation.Total == 1 &&
+            evaluation.Passed == 1 && evaluation.Failed == 0 && exactMatch;
+        string testResult = $"Agent Framework LocalEvaluator: " +
+            $"total={evaluation.Total}; passed={evaluation.Passed}; " +
+            $"failed={evaluation.Failed}; allPassed={evaluation.AllPassed}; " +
+            $"exactMatch={exactMatch}; evaluator=ContainsExpected(caseSensitive=true).";
 
         return await ExperimentEvidenceStore.SaveAsync(
             request, testResult, passed, evidenceDirectory, cancellationToken);
