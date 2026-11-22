@@ -132,7 +132,7 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 
 - Added `WorkflowMemoryIntegrationTests.RealAgentFrameworkWorkflowOutputPersistsAndRestoresWithScopedMemory` (`a562ffa`). It runs the **real pinned Microsoft Agent Framework** two-executor workflow, persists its output as evidence, stores an integrity-checked research-memory manifest, reopens the store, checks scoped retrieval, denies a different experiment, and detects tampering.
 - This is an actual framework-to-memory integration test, not a mocked workflow, but still uses deterministic test input and temporary local storage.
-- **PENDING HOST BUILD/TEST**: expected full suite 43 tests. Do not mark SML-06 PASS until execution is observed.
+- **HOST PASS (2026-11-22)**: full suite 43/43 succeeded, 0 failed/skipped; duration 2s 015ms. Initial MSTEST0017 build failure was corrected in `378cfc9` and recorded separately. Evidence: `docs/evidence/2026-11-22-workflow-memory-integration-verification.md`. SML-06 remains OPEN pending additional integration and restart/security gates.
 - Not yet covered: process-kill/restart durability, trusted authorization source, production identity, model-backed or scientific evaluation, external worker isolation, and held-out learning.
 
 ## Implementation order
