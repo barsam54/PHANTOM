@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 
@@ -34,8 +37,30 @@ public static class FirstWorkflow
             $"failed={evaluation.Failed}; allPassed={evaluation.AllPassed}; " +
             $"exactMatch={exactMatch}; evaluator=ContainsExpected(caseSensitive=true).";
 
+        // Stable across independent runs and evidence directories; binds inputs, code version,
+        // configuration, actual output, expected output, and evaluation verdict.
+        byte[] canonical = JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            request.CodeVersion,
+            request.InputSpecification,
+            request.ExecutionConfiguration,
+            ActualOutput = actual,
+            ExpectedOutput = expectedOutput,
+            evaluation.Total,
+            evaluation.Passed,
+            evaluation.Failed,
+            evaluation.AllPassed,
+            ExactMatch = exactMatch
+        });
+        string fingerprint = Convert.ToHexString(SHA256.HashData(canonical));
+        var details = new WorkflowEvaluationEvidence(
+            "Microsoft.Agents.AI.LocalEvaluator/ContainsExpected(caseSensitive=true)",
+            typeof(LocalEvaluator).Assembly.GetName().Version?.ToString() ?? "unknown",
+            actual, expectedOutput, evaluation.Total, evaluation.Passed,
+            evaluation.Failed, evaluation.AllPassed, exactMatch, fingerprint);
+
         return await ExperimentEvidenceStore.SaveAsync(
-            request, testResult, passed, evidenceDirectory, cancellationToken);
+            request, testResult, passed, evidenceDirectory, cancellationToken, details);
     }
 
     public static async Task<string> RunAsync(string input)
