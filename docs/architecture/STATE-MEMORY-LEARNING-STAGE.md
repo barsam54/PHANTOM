@@ -200,3 +200,10 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - Added positive and negative tests (`6f17af5`) for valid signed grant, cross-experiment denial, expiration, wrong key, payload tampering, earlier research cutoff, and non-UTC current time.
 - **HOST PASS (2026-11-22):** full infrastructure suite 49/49 succeeded, 0 failed/skipped, duration 2s 135ms. Evidence: `docs/evidence/2026-11-22-signed-research-grants-verification.md`. SML-04 remains OPEN.
 - **Trust boundaries still OPEN:** the signing operation must be accessible only to the trusted host (the public `Issue` method is not an end-user API); the host must manage key protection, rotation and identity verification. Direct store reads and filesystem access must be denied to untrusted code by process isolation/permissions. This is not an end-to-end authentication deployment and does not close SML-04. No release.
+
+## Signed-grant expiry trust-boundary correction (2026-11-22)
+
+- Security review found that `SignedResearchMemoryAccess.ReadAsync` accepted a **caller-supplied current time**; an untrusted caller could supply an old UTC value to bypass expiration even with a valid signature.
+- Fixed in `d8b4b93`: the read path obtains current UTC from an injected `TimeProvider` (default `TimeProvider.System`); no request parameter can override the expiry clock. Tests use an isolated fixed clock (`7a93b89`) to verify expiration deterministically.
+- **PENDING HOST BUILD/TEST**. Prior 49/49 host PASS applies to the earlier vulnerable interface, not this fix.
+- Security condition: production host must not allow untrusted callers to construct this service with an attacker-controlled `TimeProvider`, key, or store. Key custody, issuer separation and OS isolation remain OPEN; no release.
