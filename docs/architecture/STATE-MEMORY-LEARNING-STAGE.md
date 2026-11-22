@@ -267,3 +267,9 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - Added `LinuxResearchGrantEndpoint` (`fc2d460`): a trusted-side handler takes an accepted Unix socket and derives principal only through kernel-backed `LinuxPeerIdentityProvider` before calling `TrustedResearchGrantIssuer`. The request may specify an experiment/cutoff but cannot inject identity claims.
 - Added real Unix socket integration test (`35ac596`): allow mapped UID/experiment/cutoff; deny wrong experiment, future cutoff, unmapped UID.
 - **PENDING HOST BUILD/TEST**. This is a callable trusted endpoint component, **not a deployed socket server**. OS process separation, socket filesystem policy, service lifecycle, and direct store bypass remain OPEN. No SML-04 closure or release.
+
+## Linux grant endpoint host verification (2026-11-22)
+
+- **HOST PASS:** Ubuntu host at `2c9782f`, infrastructure suite **54/54 succeeded, 0 failed, 0 skipped**, duration 2s 113ms.
+- Evidence: `docs/evidence/2026-11-22-linux-grant-endpoint-verification.md` (`3336ca8`).
+- Kernel-backed principal to scoped-grant component verified for test scope. A deployed trusted socket server, separate OS UID and cross-UID isolation are still OPEN. No SML-04 closure.
