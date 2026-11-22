@@ -42,6 +42,32 @@ No criterion is marked PASS based on this design document.
 - This tests observable input/output isolation only, not the framework's private/shared `IWorkflowContext` state. Add direct state-scope tests when state is actually used.
 - SML-02 through SML-06 remain OPEN; no checkpoint, research memory or learning implementation is claimed.
 
+## Verified .NET checkpoint API review (2026-11-22)
+
+Official Microsoft documentation explicitly shows these C# APIs:
+
+- `CheckpointManager.CreateInMemory()`
+- `InProcessExecution.RunStreamingAsync(workflow, input, checkpointManager)`
+- `StreamingRun.WatchStreamAsync()` and `StreamingRun.Checkpoints`
+- `SuperStepCompletedEvent.CompletionInfo?.Checkpoint`
+- `run.RestoreCheckpointAsync(savedCheckpoint)`
+
+Reference: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoints
+
+The current PHANTOM `FirstWorkflow.RunAsync` uses `InProcessExecution.RunAsync` and returns the reverse executor output from `run.NewEvents`. Do not replace this stable production path solely to introduce checkpoint tests. Introduce a dedicated test-only streaming workflow first, using the same Agent Framework orchestration primitives.
+
+**Important boundary:** framework checkpoints capture execution state after supersteps, not a guarantee of exactly-once external side effects. SML-02 must test interrupted/resumed execution, checkpoint identity/topology compatibility, and explicit side-effect idempotency. An in-memory manager is not durable across process restarts; durable recovery remains OPEN until a supported persistence provider and restoration test are established.
+
+**Version boundary:** documentation shows the C# surface, but compilation against the repository-pinned `Microsoft.Agents.AI.Workflows` 1.28.0 and observed host execution are still required before marking any API integration PASS.
+
+## Next checkpoint acceptance slice
+
+1. Add a minimal isolated streaming workflow integration test with in-memory checkpoints; assert checkpoint capture after supersteps.
+2. Restore a checkpoint and verify expected output and executor call counts, including a negative case for incompatible or missing checkpoint.
+3. Keep external side effects behind an idempotent experiment-operation key; verify no duplicated committed effects on resume.
+4. Verify the pinned package compiles and run the full regression suite on host; commit sanitized evidence.
+5. Address persistent checkpoints separately. Do not claim crash/restart recovery from in-memory tests.
+
 ## Implementation order
 
 1. Inspect pinned C# Agent Framework APIs and current workflow construction to select supported state isolation and checkpoint primitives.
