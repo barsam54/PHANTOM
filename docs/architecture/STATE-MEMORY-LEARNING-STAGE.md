@@ -135,6 +135,13 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 - **HOST PASS (2026-11-22)**: full suite 43/43 succeeded, 0 failed/skipped; duration 2s 015ms. Initial MSTEST0017 build failure was corrected in `378cfc9` and recorded separately. Evidence: `docs/evidence/2026-11-22-workflow-memory-integration-verification.md`. SML-06 remains OPEN pending additional integration and restart/security gates.
 - Not yet covered: process-kill/restart durability, trusted authorization source, production identity, model-backed or scientific evaluation, external worker isolation, and held-out learning.
 
+## Separate-process memory readback probe (2026-11-22)
+
+- Added standalone .NET 10 console probe under `tests/Phantom.MemoryRestartProbe/` (`b546100`, `cead581`).
+- `write` runs the real Microsoft Agent Framework workflow, writes external evidence, and saves a memory manifest. A **separate invocation** of `read` reopens the same manifest and verifies evidence integrity and output.
+- **PENDING HOST EXECUTION**. Run the two commands as separate OS processes, with a unique external temporary directory. Expected markers: `WRITE_PASS` then `RESTART_READ_PASS`. Record actual outputs before claiming PASS.
+- This proves clean process-exit/relaunch readback only, **not** forced process kill, power-loss-safe writes, or durable Agent Framework checkpoint resume. Those remain OPEN.
+
 ## Implementation order
 
 1. Inspect pinned C# Agent Framework APIs and current workflow construction to select supported state isolation and checkpoint primitives.
