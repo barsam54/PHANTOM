@@ -147,3 +147,38 @@ The baseline remains OPEN until evidence confirms:
 
 Documentation and package APIs must be verified
 before implementation.
+
+### 11. Repository Layout and Storage Policy
+
+Repository root contains only repository-wide configuration files and
+entry points (for example `global.json`, `Directory.Build.props`,
+`.gitignore`, and a solution file). Application source code, tests,
+backups, logs, and generated experiment outputs must not be stored as
+loose files at the repository root.
+
+Approved logical directories:
+- `src/`: production source code and domain components.
+- `tests/`: automated test projects and test fixtures.
+- `benchmarks/`: performance benchmark projects, when needed.
+- `docs/`: architecture, decisions, and small reviewable evidence records.
+- `infra/`: infrastructure configuration and Docker definitions.
+- `scripts/`: version-controlled development and maintenance scripts.
+- `.github/`: GitHub automation and CI configuration.
+
+Storage rules:
+- Large historical datasets, experiment outputs, runtime logs, and
+  backups are stored outside the repository working tree, in explicitly
+  configured locations. They are not committed to Git.
+- Temporary .NET `bin/` and `obj/` directories and `TestResults/`
+  remain in their conventional locations and are ignored by Git.
+  Moving these outputs outside the project is not a requirement.
+- Only small, sanitized, reproducible evidence summaries and manifests
+  may be versioned under `docs/evidence/`; no credentials, sensitive
+  information, or large binary artifacts are committed.
+- Runtime data paths must be configurable; code must not assume a
+  developer-specific absolute path. Backup retention and recovery
+  verification are separate acceptance gates and remain OPEN.
+- Directories are created when needed, not as empty placeholders.
+
+This section defines repository hygiene, not proof that external storage,
+backup recovery, or the test infrastructure has been verified.
