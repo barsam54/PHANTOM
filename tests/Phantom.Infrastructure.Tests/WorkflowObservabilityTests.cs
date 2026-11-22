@@ -26,7 +26,7 @@ public sealed class WorkflowObservabilityTests
             Assert.IsTrue(result.Passed);
             Activity[] traces = completed.Where(activity => activity.OperationName == "phantom.experiment.evaluate" &&
                 Equals(activity.GetTagItem("phantom.experiment.id"), request.ExperimentId)).ToArray();
-            Assert.IsTrue(traces.Length > 0);
+            Assert.IsNotEmpty(traces);
             Assert.IsTrue(traces.All(activity => activity.GetTagItem("phantom.experiment.id")?.ToString() == request.ExperimentId));
             Activity trace = traces[0];
             Assert.AreEqual("TRACE-001", trace.GetTagItem("phantom.experiment.id"));
@@ -55,7 +55,10 @@ public sealed class WorkflowObservabilityTests
             var request = new ExperimentRequest("TRACE-FAIL-001", "git:test", "PHANTOM", "smoke");
             ExperimentResult result = await FirstWorkflow.RunWithEvidenceAsync(request, "WRONG", directory);
             Assert.IsFalse(result.Passed);
-            Activity trace = completed.Single(activity => activity.OperationName == "phantom.experiment.evaluate");
+            Activity[] traces = completed.Where(activity => activity.OperationName == "phantom.experiment.evaluate" &&
+                Equals(activity.GetTagItem("phantom.experiment.id"), request.ExperimentId)).ToArray();
+            Assert.IsNotEmpty(traces);
+            Activity trace = traces[0];
             Assert.IsInstanceOfType<bool>(trace.GetTagItem("phantom.evaluation.passed"));
             Assert.IsFalse((bool)trace.GetTagItem("phantom.evaluation.passed")!);
             Assert.IsTrue(traces.All(activity => activity.Status == ActivityStatusCode.Error));
