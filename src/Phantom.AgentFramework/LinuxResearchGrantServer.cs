@@ -67,7 +67,7 @@ public sealed class LinuxResearchGrantServer
                     throw new UnauthorizedAccessException("Unsupported operation.");
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException or JsonException or
-                                       InvalidDataException or ArgumentException or KeyNotFoundException or
+                                       InvalidDataException or ArgumentException or FormatException or KeyNotFoundException or
                                        FileNotFoundException)
             {
                 await writer.WriteLineAsync("{\"error\":\"denied\"}");
