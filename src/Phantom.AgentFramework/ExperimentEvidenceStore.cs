@@ -15,7 +15,8 @@ public static class ExperimentEvidenceStore
         string testResult,
         bool passed,
         string evidenceDirectory,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        WorkflowEvaluationEvidence? evaluation = null)
     {
         ExperimentContract.Validate(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(testResult);
@@ -29,7 +30,10 @@ public static class ExperimentEvidenceStore
 
         string directory = Path.GetFullPath(evidenceDirectory);
         string path = Path.Combine(directory, request.ExperimentId + ".json");
-        ExperimentResult result = ExperimentContract.Record(request, testResult, passed, path);
+        ExperimentResult result = ExperimentContract.Record(request, testResult, passed, path)
+        {
+            Evaluation = evaluation
+        };
 
         cancellationToken.ThrowIfCancellationRequested();
         Directory.CreateDirectory(directory);
