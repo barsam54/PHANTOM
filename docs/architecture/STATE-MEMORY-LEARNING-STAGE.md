@@ -279,3 +279,9 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - Added `LinuxResearchGrantServer` (`5b3ccb3`), a bounded 4096-character newline-delimited JSON request handler over an accepted Unix socket, using kernel peer identity and five-minute scoped grants; invalid/unauthorized requests receive a generic denial.
 - Added end-to-end socket request/response integration test for authorized and wrong-experiment requests (`f9cc091`).
 - **PENDING HOST BUILD/TEST**. This is a connection handler, not a managed listener process, systemd deployment, distinct UID setup, socket access policy, or cross-UID denial proof. SML-04 OPEN, no release.
+
+## Linux grant server handler host verification (2026-11-22)
+
+- **HOST PASS:** Ubuntu host at `ace8eef`, infrastructure suite **55/55 succeeded, 0 failed, 0 skipped**, duration 2s 228ms.
+- Evidence: `docs/evidence/2026-11-22-linux-grant-server-verification.md` (`b852400`).
+- Request/response handler verification is complete for tested scope only; a deployed isolated process, socket permissions and cross-UID denial remain OPEN. No SML-04 closure.
