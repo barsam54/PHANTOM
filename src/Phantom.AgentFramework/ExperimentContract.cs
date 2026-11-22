@@ -16,7 +16,23 @@ public sealed record ExperimentResult(
     string ExecutionConfiguration,
     string TestResult,
     bool Passed,
-    string EvidenceLocation);
+    string EvidenceLocation)
+{
+    public WorkflowEvaluationEvidence? Evaluation { get; init; }
+}
+
+public sealed record WorkflowEvaluationEvidence(
+    string Evaluator,
+    string EvaluatorVersion,
+    string ActualOutput,
+    string ExpectedOutput,
+    int Total,
+    int Passed,
+    int Failed,
+    bool AllPassed,
+    bool ExactMatch,
+    string ReproductionFingerprint);
+
 
 public static class ExperimentContract
 {
