@@ -49,7 +49,7 @@ finally
 }
 var handler = new LinuxResearchGrantServer(new LinuxResearchGrantEndpoint(
     new LinuxPeerIdentityProvider(new Dictionary<uint, string> { [workerUid] = experimentId }, cutoff),
-    new TrustedResearchGrantIssuer(signer)));
+    new TrustedResearchGrantIssuer(signer)), signer);
 using var listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
 listener.Bind(new UnixDomainSocketEndPoint(socketPath));
 try
