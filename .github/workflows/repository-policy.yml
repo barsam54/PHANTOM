@@ -16,5 +16,7 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-      - name: Check tracked files against baseline
+      - name: Run repository governance policy unit and negative tests
+        run: python3 -m unittest discover -s tests/policy -p 'test_*.py' -v
+      - name: Check tracked files and P0 governance contract
         run: python3 scripts/check_repository_policy.py
