@@ -31,6 +31,11 @@
       "id": "baseline_review",
       "state": "OPEN",
       "proof": "documented conflict, controlled amendment, permitted conforming fixes"
+    },
+    {
+      "id": "impact_rollback",
+      "state": "OPEN",
+      "proof": "versioned before/after metric baseline, independent regression comparison, bounded risk assessment, tested rollback and post-rollback verification"
     }
   ],
   "phase_steps": [
@@ -76,6 +81,55 @@
       "usage": "attributed lessons; no self-certification or extra orchestrator"
     }
   ],
-  "acceptance": "Single integration test of real phase including forced failure+resume, automatic evidence commit/PR and dashboard sync; negative bypass cases",
-  "release_allowed": false
+  "acceptance": "Single integration test of real phase including forced failure+resume, automatic evidence commit/PR and dashboard sync; negative bypass cases; paired before/after evaluation and exercised rollback in an isolated real-change scenario",
+  "release_allowed": false,
+  "impact_rollback": {
+    "state": "OPEN",
+    "scope": "Every proposed change; risk-adjusted evaluation, separate from SML scientific learning",
+    "required_fields": [
+      "change_id",
+      "base_sha",
+      "candidate_sha",
+      "affected_components",
+      "criteria_revision",
+      "metric_definitions",
+      "baseline_results",
+      "candidate_results",
+      "comparison_result",
+      "regression_findings",
+      "risk_class",
+      "rollback_target_sha",
+      "rollback_plan",
+      "rollback_test_evidence",
+      "post_change_monitoring",
+      "decision_evidence"
+    ],
+    "comparisons": [
+      "IMPROVED",
+      "EQUIVALENT",
+      "REGRESSION",
+      "INCONCLUSIVE"
+    ],
+    "acceptance_rules": [
+      "Determine accepted metrics, thresholds, tolerated tradeoffs and blocking safety bounds before evaluation",
+      "Compare matched datasets/environments; preserve independent test evidence and failure cases",
+      "IMPROVED and EQUIVALENT require justified goal attainment, no forbidden regression and validated rollback",
+      "REGRESSION blocks acceptance and triggers safe restoration where relevant",
+      "INCONCLUSIVE blocks acceptance of risky changes and requests missing evidence; never self-promote to PASS",
+      "Rollback must account for git changes and external state; git revert alone is not sufficient",
+      "Pre-change recovery point and post-rollback verification are mandatory where state changes can occur"
+    ],
+    "source_guidance": [
+      {
+        "source": "Microsoft",
+        "reference": "https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/safe-deployments",
+        "use": "safe change, progressive validation and rollback concepts as advisory engineering reference; Azure hosting not required"
+      },
+      {
+        "source": "Microsoft Agent Framework",
+        "reference": "https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoints",
+        "use": "orchestrate evaluation and checkpoint transitions using verified C# APIs, but never treat checkpoint as external rollback guarantee"
+      }
+    ]
+  }
 }
