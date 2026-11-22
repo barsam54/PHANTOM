@@ -1,6 +1,6 @@
 # SML-04 Linux trusted host deployment contract
 
-Status: PARTIALLY PROVISIONED / OPEN (Ubuntu evidence 2026-11-22).
+Status: LIVE HOST + AUTHORIZED GRANT VERIFIED / OPEN (Ubuntu evidence 2026-11-22).
 
 This is a specification for an administrator, **not** authorization to create users,
 change ownership, grant sudo access, or start a service on a user's machine.
@@ -11,9 +11,13 @@ change ownership, grant sudo access, or start a service on a user's machine.
 - PASS: private root, memory and keys directories owned by host and mode 0700.
 - PASS: socket directory owned by host, group worker, mode 0710.
 - PASS: user-reported 58/58 MSTest regression at commit `6da6d37`.
-- PENDING: key file, live host, socket policy, authorized memory read, outsider/worker denial and key rotation.
+- PASS: 32-byte signing key owned by host, mode 0600; Release host publish and deployment to root-owned /opt/phantom-security.
+- PASS: trusted host running under UID 997 and worker socket group, socket owner/group and mode 0660.
+- PASS: worker cannot read signing key or traverse private memory.
+- PASS: authorized worker UID 994 received a signed grant over the live Unix socket with a valid near-current UTC cutoff.
+- PENDING: wrong-scope and outsider denial, authorized admitted-memory read, full verification script and live key rotation/restart.
 - Evidence: `docs/evidence/2026-11-22-sml04-ubuntu-provisioning.md`.
-- Stage remains OPEN. Provisioning does not establish a working trusted boundary.
+- Stage remains OPEN. Live grant issuance and file isolation alone do not establish the complete trusted boundary.
 
 ## Security identities
 
