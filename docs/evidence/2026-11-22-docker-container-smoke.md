@@ -73,3 +73,25 @@ Acceptance:
 - PASS: this specific restricted-container smoke test and observed controls.
 - OPEN: execution of untrusted code; explicit network connectivity negative test; non-root writable-home strategy for SDK build/test; per-experiment filesystem mounts and artifact handling; timeout and cancellation; repeatability and automated evidence capture.
 - This evidence is based on pasted terminal output, not a cryptographically attested execution trace.
+
+## Ephemeral .NET workspace check (2026-11-22)
+Evidence ID: PHANTOM-INFRA-DOCKER-20261122-003
+Source: user-reported terminal output.
+
+Invocation retained the restricted container options from the previous step, with two writable tmpfs mounts:
+- /tmp: rw,nosuid,nodev,size=64m,mode=1777
+- /workspace: rw,nosuid,nodev,size=64m,mode=1777
+- DOTNET_CLI_HOME=/tmp, DOTNET_CLI_TELEMETRY_OPTOUT=1, workdir=/workspace.
+- Image: mcr.microsoft.com/dotnet/sdk:10.0-noble.
+- User: 65534:65534.
+
+Observed:
+- dotnet --version: 10.0.404 — PASS.
+- Writing /workspace/check.txt and reading back PHANTOM_TEST — PASS.
+- id: uid=65534(nobody), gid=65534(nogroup) — PASS.
+- Result marker: PASS.
+- DOCKER_EXIT_CODE=0 — PASS.
+
+Acceptance:
+- PASS: ephemeral writable workspace for the non-root .NET CLI with the tested invocation.
+- OPEN: build and test actual PHANTOM source inside the container; experiment input/output contract; automated evidence capture; safe execution of third-party code.
