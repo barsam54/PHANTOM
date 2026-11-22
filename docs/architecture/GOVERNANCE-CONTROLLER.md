@@ -3,7 +3,7 @@ Status: **OPEN — CONTRACT DOCUMENTED; END-TO-END EXECUTION NOT IMPLEMENTED**
 Owner of scope: development governance across all project phases; not the research-product SML memory service.
 Baseline: [BASELINE.md](BASELINE.md) section 12. Governing decision must not silently change existing accepted evidence or reopen SML-04.
 
-## Architecture: one execution contract, five always-present views
+## Architecture: one execution contract, six complementary capabilities
 Trigger: GitHub Actions, local CLI, or a future authorized agent runner.
 Orchestration: **Microsoft Agent Framework C# workflow**, with explicit executors and conditional transitions. The framework's published APIs must be confirmed against the pinned package before implementation. GitHub Actions triggers/tests the controller; it does not become a second research workflow engine.
 Inputs: immutable revision SHA, stage ID, baseline revision/criteria, existing evidence index, dependency graph, permissions, run ID.
@@ -11,7 +11,7 @@ Outputs: evidence manifest, decision (PASS / REPAIRABLE / BLOCKED / PENDING), de
 Separation: project SML state/memory/learning is **not** governance progress state. Never use scientific memory as the authoritative project task database.
 Repositories: baseline, source, tests, sanitized evidence and acceptance contract remain versioned in Git. Large logs, datasets, checkpoints and secrets remain outside Git. Project dashboards contain derived displays, never independently asserted PASS.
 
-## Five capabilities and mandatory templates
+## Six capabilities and mandatory templates
 | Capability | Template / source of truth | Acceptable completion proof | Failure behavior |
 | --- | --- | --- | --- |
 | 1 Dashboard | `run_id, stage_id, commit_sha, accepted, pending, blocked, checkpoint_ref, action` projected from verified run manifest to GitHub Projects | graph/board matches accepted evidence, refresh confirmed | STALE_DASHBOARD -> refresh projection; never change PASS manually |
@@ -19,6 +19,7 @@ Repositories: baseline, source, tests, sanitized evidence and acceptance contrac
 | 3 Phase lifecycle | `discover -> baseline_review -> dependencies -> plan -> authorized_execute -> build_and_tests -> evidence -> acceptance -> publish -> checkpoint` | actual phase finishes and survives an induced failure/restart without duplicated side effects | CHECKPOINT_INVALID -> restore validated checkpoint or BLOCKED with exact manual action |
 | 4 Enforcement | `code, stage, reason, evidence, action, resume` with no blank fields; agent cannot self-approve | negative tests reject invalid change at actual merge/acceptance boundary | POLICY_DENIED -> deterministic explanation and remedy |
 | 5 Baseline review | `baseline_sha, contested_clause, external_official_source, reproducible_finding, proposed_change, impact, approval` | routine fix proceeds; conflict remains blocked for the affected operation until reviewed amendment | BASELINE_CONFLICT -> isolated amendment PR; no silent edits or broad freeze |
+| 6 Impact and rollback | `change_id, base_sha, candidate_sha, affected_components, metric_definitions, baseline_results, candidate_results, comparison_result, rollback_target_sha, rollback_plan, rollback_test_evidence` | matched before/after measurements meet predeclared hard safety bounds; documented goal achieved; independent regression and safe rollback restoration verified | REGRESSION_DETECTED / IMPACT_INCONCLUSIVE / ROLLBACK_UNVERIFIED -> explain cause, revert or isolate change, run recovery and verification |
 
 ### Progress manifest / decision template
 ```json
@@ -30,6 +31,7 @@ Repositories: baseline, source, tests, sanitized evidence and acceptance contrac
   "implemented": [], "verified": [], "remaining": [],
   "dependency_status": [], "evidence": [],
   "checkpoint_ref": null, "denial": null,
+  "impact": {"comparison": "INCONCLUSIVE", "rollback_verified": false},
   "dashboard_synced": false
 }
 ```
@@ -47,6 +49,19 @@ These are required *future* controller fields, **not a claim of an existing prod
 }
 ```
 A denial must identify *what* violated *which* criterion, and supply an actionable way to continue; no blanket blocking unrelated tasks. Do not claim automatic repair without authorized worker, bounded retries and proven idempotency.
+
+## Impact and rollback acceptance protocol (sixth capability)
+This is a governance responsibility, **not** SML learning, and does not create a second controller. Its independent evaluation step must reject self-scoring by an autonomous coding worker.
+
+**Pre-change:** record the intended benefit or justified maintenance outcome, component/dependency blast radius, immutable base SHA, affected configurations/data, recovery point, rollback plan, metric definitions, test datasets/environment and hard limits before executing candidate changes. Do not fabricate a metric or change thresholds after results are known.
+
+**Post-change:** run matching measurements and existing integration/negative/regression checks independently. Evidence must distinguish IMPROVED (predeclared goal met), EQUIVALENT (no meaningful loss and justified maintenance/refactor), REGRESSION (forbidden degradation, unmet mandatory criteria), and INCONCLUSIVE (inadequate or mismatched evidence). Tradeoffs require an explicit preapproved threshold and may never waive security or scientific validity. No metric averaging may hide a critical failure.
+
+**Rollback:** verify recovery to a known-good **code + config + data/external-side-effect** state as applicable; guard repeated operations with idempotency IDs. If destructive or irreversible effects exist, block deployment until a tested compensating/recovery path is specified. `git revert` alone cannot reverse migrations or external operations. After rollback, re-run the affected smoke/regression checks and publish the restoration result. Inability to restore is a BLOCKED condition with explanation and remedy, not a silent retry.
+
+**Practical test template:** fixed inputs/environment, before/after results and hashes, introduced regression -> rejection -> rollback -> post-rollback comparison against the base. Include negative tests for manipulated results, missing baseline metrics, missing recovery snapshot and failed rollback. P0 remains OPEN until exercised on a real PHANTOM phase.
+
+**Microsoft references:** https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/safe-deployments (design guidance, no Azure service requirement); https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoints (C# workflow recovery primitive, NOT external transaction rollback). Verify current official APIs against pinned 1.28.0 before coding.
 
 ## External patterns: where to apply, and where not
 **Microsoft (normative API reference, mandatory when implementing C# framework behavior)**
@@ -73,7 +88,7 @@ A. Read and preserve earlier stage evidence. Keep existing repository layout gua
 B. Supply machine-readable contract, structured denial and negative tests in existing policy workflow. **Initial guard only**: it can fail CI, cannot guarantee prevention of bypass.
 C. Implement Governance Workflow in C# Agent Framework, durable checkpoint and bounded authorized worker. Confirm exact official .NET APIs first.
 D. Publish evidence and PR automatically; independent verify step; update Projects via least-privilege GitHub integration.
-E. Test real phase end-to-end: forced failure, restart, reuse of previous valid work, baseline conflict, false PASS rejection, dashboard coherence, and attempted invalid merge. Mark P0 PASS only when end-to-end tested on host.
+E. Test real phase end-to-end: forced failure, restart, reuse of previous valid work, baseline conflict, false PASS rejection, before/after metrics and forced safe rollback, dashboard coherence, and attempted invalid merge. Mark P0 PASS only when end-to-end tested on host.
 
 ## Acceptance exclusions
 - No release; no opening previously accepted SML-04 operational scope.
