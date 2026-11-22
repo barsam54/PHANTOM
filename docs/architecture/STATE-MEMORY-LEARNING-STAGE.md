@@ -176,5 +176,5 @@ These describe framework concepts; concrete C# APIs must be verified against the
 
 - Updated **production** `ExperimentEvidenceStore.SaveAsync` (`6d90487`), used by `FirstWorkflow.RunWithEvidenceAsync`, to serialize evidence into a unique temporary file, flush it, close it, then publish the immutable final JSON using no-overwrite rename.
 - This is a production implementation change, not a new simulated crash probe. It avoids exposing a partially serialized final evidence record to readers after a process interruption and preserves duplicate experiment rejection.
-- **PENDING HOST VERIFICATION** for this code change. Existing 44/44 PASS was obtained **before** this commit and is not evidence for the new change.
+- **HOST PASS (2026-11-22):** production evidence atomic publication regression and full infrastructure suite: 45/45 succeeded, 0 failed/skipped, duration 1s 911ms. Initial build was blocked by MSTEST0037; corrected in `d6904c2`. Evidence: `docs/evidence/2026-11-22-production-evidence-atomic-verification.md`.
 - Limits: directory metadata durability across power loss, malicious filesystem manipulation, cleanup of abandoned temporary files, and durable Agent Framework checkpoint resume remain OPEN. No release.
