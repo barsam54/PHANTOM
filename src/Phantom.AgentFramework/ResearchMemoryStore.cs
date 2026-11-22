@@ -56,6 +56,8 @@ public sealed class ResearchMemoryStore
         CancellationToken cancellationToken = default)
     {
         string path = PathFor(experimentId);
+        if (!Directory.Exists(directory))
+            throw new FileNotFoundException("Research memory record not found.", path);
         await using FileStream stream = new(
             path, FileMode.Open, FileAccess.Read, FileShare.Read,
             bufferSize: 4096, options: FileOptions.Asynchronous);
