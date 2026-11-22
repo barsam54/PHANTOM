@@ -1,9 +1,12 @@
+using System.Runtime.Versioning;
 namespace Phantom.AgentFramework;
 
 /// <summary>
 /// Fail-closed Unix storage preflight. Host must also isolate untrusted processes
 /// under different OS identities and deny direct access to the underlying store.
 /// </summary>
+[SupportedOSPlatform("linux")]
+[SupportedOSPlatform("macos")]
 public static class ResearchStorageBoundary
 {
     public static void VerifyPrivateDirectory(string absoluteDirectory)
