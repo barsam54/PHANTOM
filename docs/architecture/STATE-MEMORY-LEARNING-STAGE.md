@@ -261,3 +261,9 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - **HOST PASS:** Ubuntu host at `8030359`, infrastructure suite **53/53 succeeded, 0 failed, 0 skipped**, duration 1s 933ms.
 - Evidence: `docs/evidence/2026-11-22-linux-peer-identity-verification.md` (`053e7c6`).
 - Kernel peer-identity integration test accepted for tested scope only. Running trusted service, distinct UIDs and cross-UID storage/socket isolation remain OPEN; no SML-04 closure.
+
+## Kernel identity to grant-issuance integration (2026-11-22)
+
+- Added `LinuxResearchGrantEndpoint` (`fc2d460`): a trusted-side handler takes an accepted Unix socket and derives principal only through kernel-backed `LinuxPeerIdentityProvider` before calling `TrustedResearchGrantIssuer`. The request may specify an experiment/cutoff but cannot inject identity claims.
+- Added real Unix socket integration test (`35ac596`): allow mapped UID/experiment/cutoff; deny wrong experiment, future cutoff, unmapped UID.
+- **PENDING HOST BUILD/TEST**. This is a callable trusted endpoint component, **not a deployed socket server**. OS process separation, socket filesystem policy, service lifecycle, and direct store bypass remain OPEN. No SML-04 closure or release.
