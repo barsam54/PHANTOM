@@ -228,3 +228,9 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - Observed Ubuntu host `dotnet test` failure after pulling `9983395`: `ResearchSecurityBoundaryTests.cs:34` MSTEST0037 rejects `Assert.IsTrue(grant.Contains('.'))`.
 - Root cause: project treats MSTest analyzer recommendations as errors.
 - Fixed test assertion to `Assert.Contains('.', grant)` (`c1337cf`). **PENDING HOST BUILD/TEST**. No test result claimed.
+
+## Security boundary host verification (2026-11-22)
+
+- **HOST PASS:** Ubuntu host pulled through `514e286` and ran the full infrastructure suite: **51/51 succeeded, 0 failed, 0 skipped**, duration 1s 926ms.
+- Evidence: `docs/evidence/2026-11-22-research-security-boundaries-verification.md` (`d62809d`).
+- This closes the pending build/test verification for the implemented identity-claim issuer, Unix key permission loader and storage permission preflight. It does **not** close SML-04: host authentication, process/OS isolation, key lifecycle and lower-level store bypass restrictions are still not deployed or verified. No release.
