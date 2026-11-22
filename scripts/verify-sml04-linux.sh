@@ -55,7 +55,7 @@ with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
         response += chunk
     read_response = json.loads(response)
 assert "record" in read_response, "authorized record read failed (seed admitted record before verification)"
-assert read_response["record"]["experimentId"] == experiment, "record scope mismatch"
+assert read_response["record"].get("ExperimentId", read_response["record"].get("experimentId")) == experiment, "record scope mismatch"
 print("PASS worker grant, trusted memory read and wrong-scope denial")
 PY
 echo 'PASS distinct UID, key custody, memory traversal denial and socket policy'
