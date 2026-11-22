@@ -112,6 +112,35 @@ public sealed class ResearchMemoryStoreTests
     }
 
     [TestMethod]
+    public async Task AtomicPublishIgnoresOrphanTempFilesAndRejectsDuplicate()
+    {
+        string root = Path.Combine(Path.GetTempPath(), $"phantom-atomic-{Guid.NewGuid():N}");
+        try
+        {
+            Directory.CreateDirectory(root);
+            string evidence = Path.Combine(root, "evidence.txt");
+            byte[] bytes = Encoding.UTF8.GetBytes("atomic evidence");
+            await File.WriteAllBytesAsync(evidence, bytes);
+            string memory = Path.Combine(root, "memory");
+            Directory.CreateDirectory(memory);
+            await File.WriteAllTextAsync(Path.Combine(memory, ".exp-atomic.interrupted.tmp"),
+                "{\"SchemaVersion\":1,");
+            var candidate = new ResearchMemoryCandidate(
+                "exp-atomic", "code-v1", new Uri(evidence).AbsoluteUri,
+                Convert.ToHexString(SHA256.HashData(bytes)),
+                Observation, Cutoff, "train", true);
+            var store = new ResearchMemoryStore(memory);
+            await Assert.ThrowsExactlyAsync<FileNotFoundException>(() => store.ReadAsync("exp-atomic"));
+            await store.SaveAsync(candidate);
+            Assert.AreEqual(candidate, await store.ReadAsync("exp-atomic"));
+            await Assert.ThrowsExactlyAsync<IOException>(() => store.SaveAsync(candidate));
+            Assert.AreEqual(candidate, await store.ReadAsync("exp-atomic"));
+            Assert.IsTrue(File.Exists(Path.Combine(memory, ".exp-atomic.interrupted.tmp")));
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
+    }
+
+    [TestMethod]
     public async Task RejectsUnsupportedSchema()
     {
         string root = Path.Combine(Path.GetTempPath(), $"phantom-store-{Guid.NewGuid():N}");
