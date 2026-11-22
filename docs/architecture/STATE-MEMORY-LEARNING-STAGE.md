@@ -248,3 +248,10 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - **HOST PASS:** Ubuntu host at `aaeeb4b`: infrastructure tests **52/52 succeeded, 0 failed, 0 skipped**, duration 1s 960ms.
 - Evidence: `docs/evidence/2026-11-22-private-memory-storage-verification.md` (`565d48a`).
 - Private manifest creation and ancestor symlink regression verification is complete for tested scope; SML-04 remains **OPEN** for trusted process/API isolation, provider-backed identity, key lifecycle, and cross-UID denial.
+
+## Linux kernel-backed local identity provider (2026-11-22)
+
+- Added `LinuxPeerIdentityProvider` (`f81cccf`) using Linux `getsockopt(SO_PEERCRED)` on an already connected Unix-domain socket. It constructs the experiment claim from a host-controlled UID-to-experiment allowlist, not from caller-provided claims. Unknown UID and disconnected/non-Unix socket fail closed.
+- Added real local Unix socket integration test: accept connection, verify kernel UID maps to experiment and authentication type, reject unknown UID/disconnected socket (`f0a49aa`).
+- Host must run trusted service under a distinct UID, configure restricted socket permissions, and pass **only** principals from this provider to `TrustedResearchGrantIssuer`. The provider is **not yet wired into a running service**; same-UID workers remain a bypass risk.
+- **PENDING HOST BUILD/TEST**. Identity workstream is partially implemented, not CLOSED. SML-04 OPEN, no release.
