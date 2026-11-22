@@ -255,3 +255,9 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - Added real local Unix socket integration test: accept connection, verify kernel UID maps to experiment and authentication type, reject unknown UID/disconnected socket (`f0a49aa`).
 - Host must run trusted service under a distinct UID, configure restricted socket permissions, and pass **only** principals from this provider to `TrustedResearchGrantIssuer`. The provider is **not yet wired into a running service**; same-UID workers remain a bypass risk.
 - **PENDING HOST BUILD/TEST**. Identity workstream is partially implemented, not CLOSED. SML-04 OPEN, no release.
+
+## Linux peer identity host verification (2026-11-22)
+
+- **HOST PASS:** Ubuntu host at `8030359`, infrastructure suite **53/53 succeeded, 0 failed, 0 skipped**, duration 1s 933ms.
+- Evidence: `docs/evidence/2026-11-22-linux-peer-identity-verification.md` (`053e7c6`).
+- Kernel peer-identity integration test accepted for tested scope only. Running trusted service, distinct UIDs and cross-UID storage/socket isolation remain OPEN; no SML-04 closure.
