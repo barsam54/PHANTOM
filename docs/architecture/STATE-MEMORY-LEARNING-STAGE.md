@@ -285,3 +285,12 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - **HOST PASS:** Ubuntu host at `ace8eef`, infrastructure suite **55/55 succeeded, 0 failed, 0 skipped**, duration 2s 228ms.
 - Evidence: `docs/evidence/2026-11-22-linux-grant-server-verification.md` (`b852400`).
 - Request/response handler verification is complete for tested scope only; a deployed isolated process, socket permissions and cross-UID denial remain OPEN. No SML-04 closure.
+
+## Four security gaps: consolidated host implementation (2026-11-22)
+
+- Real identity: trusted host accepts Linux Unix socket peers; `SO_PEERCRED` maps an allowed worker UID to a single experiment. Caller-supplied claims are not accepted.
+- Key custody/rotation: host reads a 32-byte owner-private key from an external private directory; restart with a newly provisioned key invalidates all old HMAC grants. Rotation/revocation has no live key management API; operational restart is required.
+- Bypass: host process owns direct `ResearchMemoryStore` access; untrusted worker must run under a different UID and receive no filesystem permissions to memory/key directories. Code alone cannot prevent a worker from importing the public store class against files it can already read.
+- OS separation: host fails startup if worker UID equals host UID; checks private storage and key directory, socket directory 0710 and socket file 0660. Deployment administrator must provision a shared socket group with worker membership and verify ownership, symlink-free ancestors, and cross-UID denial.
+- New executable: `src/Phantom.ResearchSecurityHost`. It serves grants only, not raw memory records. This is not a deployed production service.
+- **PENDING host build, integration tests, cross-UID filesystem test and operational rotation test. SML-04 OPEN.** No release.
