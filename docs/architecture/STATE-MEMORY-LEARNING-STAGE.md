@@ -149,6 +149,13 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 - **HOST PASS (2026-11-22)**: Ubuntu build succeeded (1.4s); staged truncated JSON process was terminated with SIGKILL and independent read emitted `CORRUPT_REJECTED`. Evidence: `docs/evidence/2026-11-22-memory-abrupt-termination-verification.md`. This confirms fail-closed readback only, **not** interruption inside `SaveAsync`, atomic writes, recovery, or framework checkpoint resume.
 - The known gap remains: `SaveAsync` creates the final path before serialization; a process kill may leave a partial record and prevent retry under the same experiment ID. Atomic publish/recovery needs a separate design and test.
 
+## Atomic immutable manifest publication (2026-11-22)
+
+- Changed `ResearchMemoryStore.SaveAsync` to serialize into a unique same-directory temporary file, flush file contents, close it, then publish via `File.Move(..., overwrite: false)` (`82ab4e1`). A duplicate experiment cannot overwrite the winner; orphan temporary files are not treated as records.
+- Added negative/regression test for an orphan partial temporary file, normal publication, and duplicate rejection (`0d37c2c`).
+- **PENDING HOST BUILD/TEST**; expected full infrastructure suite 44 tests.
+- This reduces exposure to incomplete final manifests on process interruption. It does **not** guarantee durability after power loss (directory metadata sync is not implemented), secure against hostile symlinks, recover orphan files, or prove interrupted real `SaveAsync` behavior. SML-02/SML-03 remain OPEN.
+
 ## Implementation order
 
 1. Inspect pinned C# Agent Framework APIs and current workflow construction to select supported state isolation and checkpoint primitives.
