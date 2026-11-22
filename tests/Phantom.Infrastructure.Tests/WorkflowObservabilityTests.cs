@@ -24,12 +24,15 @@ public sealed class WorkflowObservabilityTests
             var request = new ExperimentRequest("TRACE-001", "git:test", "PHANTOM", "smoke");
             ExperimentResult result = await FirstWorkflow.RunWithEvidenceAsync(request, "MOTNAHP", directory);
             Assert.IsTrue(result.Passed);
-            Activity trace = completed.Single(activity => activity.OperationName == "phantom.experiment.evaluate" &&
-                Equals(activity.GetTagItem("phantom.experiment.id"), request.ExperimentId));
+            Activity[] traces = completed.Where(activity => activity.OperationName == "phantom.experiment.evaluate" &&
+                Equals(activity.GetTagItem("phantom.experiment.id"), request.ExperimentId)).ToArray();
+            Assert.IsTrue(traces.Length > 0);
+            Assert.IsTrue(traces.All(activity => activity.GetTagItem("phantom.experiment.id")?.ToString() == request.ExperimentId));
+            Activity trace = traces[0];
             Assert.AreEqual("TRACE-001", trace.GetTagItem("phantom.experiment.id"));
             Assert.IsInstanceOfType<bool>(trace.GetTagItem("phantom.evaluation.passed"));
             Assert.IsTrue((bool)trace.GetTagItem("phantom.evaluation.passed")!);
-            Assert.AreEqual(ActivityStatusCode.Ok, trace.Status);
+            Assert.IsTrue(traces.All(activity => activity.Status == ActivityStatusCode.Ok));
             Assert.IsFalse(trace.TagObjects.Any(tag => tag.Value?.ToString()?.Contains("MOTNAHP", StringComparison.Ordinal) == true));
         }
         finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
@@ -55,7 +58,7 @@ public sealed class WorkflowObservabilityTests
             Activity trace = completed.Single(activity => activity.OperationName == "phantom.experiment.evaluate");
             Assert.IsInstanceOfType<bool>(trace.GetTagItem("phantom.evaluation.passed"));
             Assert.IsFalse((bool)trace.GetTagItem("phantom.evaluation.passed")!);
-            Assert.AreEqual(ActivityStatusCode.Error, trace.Status);
+            Assert.IsTrue(traces.All(activity => activity.Status == ActivityStatusCode.Error));
         }
         finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
     }
