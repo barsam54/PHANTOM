@@ -4,6 +4,27 @@ namespace Phantom.AgentFramework;
 
 public static class FirstWorkflow
 {
+    /// <summary>Executes the Agent Framework workflow and records its evaluated output.</summary>
+    public static async Task<ExperimentResult> RunWithEvidenceAsync(
+        ExperimentRequest request,
+        string expectedOutput,
+        string evidenceDirectory,
+        CancellationToken cancellationToken = default)
+    {
+        ExperimentContract.Validate(request);
+        ArgumentNullException.ThrowIfNull(expectedOutput);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        string actual = await RunAsync(request.InputSpecification);
+        bool passed = string.Equals(actual, expectedOutput, StringComparison.Ordinal);
+        string testResult = passed
+            ? "Workflow output matched expected output."
+            : "Workflow output did not match expected output.";
+
+        return await ExperimentEvidenceStore.SaveAsync(
+            request, testResult, passed, evidenceDirectory, cancellationToken);
+    }
+
     public static async Task<string> RunAsync(string input)
     {
         ArgumentNullException.ThrowIfNull(input);
