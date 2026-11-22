@@ -56,6 +56,100 @@ def check_path(path):
     return problems
 
 
+
+GOVERNANCE_CONTRACT = "docs/architecture/GOVERNANCE-CONTRACT.json"
+REQUIRED_GOVERNANCE_CAPABILITIES = {
+    "dashboard", "evidence", "end_to_end", "enforcement", "baseline_review"
+}
+REQUIRED_DENIAL_FIELDS = {"code", "stage", "reason", "evidence", "action", "resume"}
+REQUIRED_STAGE_STEPS = (
+    "discover", "baseline_review", "dependencies", "plan", "authorized_execute",
+    "build_and_tests", "evidence", "acceptance", "publish", "checkpoint"
+)
+
+
+def governance_denial(code, reason, action, evidence=None):
+    """Actionable denial; this is a contract guard, not full P0 enforcement."""
+    return {
+        "path": GOVERNANCE_CONTRACT,
+        "code": code,
+        "stage": "GOV-P0",
+        "reason": reason,
+        "evidence": evidence or [GOVERNANCE_CONTRACT],
+        "action": action,
+        "resume": "rerun repository-policy after correcting the contract",
+    }
+
+
+def check_governance_contract(root=ROOT):
+    """Fail closed on missing or malformed P0 contract. No model/host needed."""
+    target = root / GOVERNANCE_CONTRACT
+    if not target.is_file():
+        return [governance_denial(
+            "GOV_CONTRACT_MISSING", "P0 governance contract does not exist",
+            "Restore the versioned governance contract and rerun the policy guard"
+        )]
+    try:
+        doc = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
+        return [governance_denial(
+            "GOV_CONTRACT_INVALID_JSON", f"Cannot parse P0 contract: {exc}",
+            "Repair the contract JSON and rerun the policy guard"
+        )]
+    if not isinstance(doc, dict):
+        return [governance_denial(
+            "GOV_CONTRACT_INVALID", "Contract root must be a JSON object",
+            "Restore the published governance contract schema"
+        )]
+    errors = []
+    if doc.get("gate") != "GOV-P0" or doc.get("status") != "OPEN":
+        errors.append(governance_denial(
+            "GOV_PREMATURE_ACCEPTANCE",
+            "The controller remains OPEN until real end-to-end acceptance evidence exists",
+            "Keep GOV-P0 OPEN; close it only through separately verified integration acceptance"
+        ))
+    caps = doc.get("capabilities", [])
+    ids = [item.get("id") for item in caps if isinstance(item, dict)] if isinstance(caps, list) else []
+    if set(ids) != REQUIRED_GOVERNANCE_CAPABILITIES or len(ids) != len(REQUIRED_GOVERNANCE_CAPABILITIES):
+        errors.append(governance_denial(
+            "GOV_CAPABILITY_MISMATCH", "Exactly five approved complementary capabilities are required",
+            "Restore all five capability IDs without duplicates or an additional controller"
+        ))
+    if not isinstance(caps, list) or any(
+        not isinstance(item, dict) or item.get("state") != "OPEN" or not item.get("proof")
+        for item in caps
+    ):
+        errors.append(governance_denial(
+            "GOV_CAPABILITY_EVIDENCE_REQUIRED", "Capability status/proof incomplete or falsely closed",
+            "Retain OPEN and give the acceptance proof needed for each capability"
+        ))
+    if doc.get("phase_steps") != list(REQUIRED_STAGE_STEPS):
+        errors.append(governance_denial(
+            "GOV_STAGE_CONTRACT_MISMATCH", "End-to-end stage contract is missing or reordered",
+            "Restore the declared phase steps or submit a reviewed baseline amendment"
+        ))
+    fields = doc.get("denial_fields", [])
+    if not isinstance(fields, list) or set(fields) != REQUIRED_DENIAL_FIELDS or len(fields) != len(REQUIRED_DENIAL_FIELDS):
+        errors.append(governance_denial(
+            "GOV_DENIAL_FIELDS_MISSING", "Denial must report code/stage/reason/evidence/action/resume",
+            "Restore the six actionable-denial fields"
+        ))
+    if doc.get("release_allowed") is not False:
+        errors.append(governance_denial(
+            "GOV_RELEASE_BLOCKED", "Release is prohibited before whole-project approval",
+            "Set release_allowed to false; obtain separately reviewed release approval"
+        ))
+    for field in ("baseline", "controller_spec"):
+        path = doc.get(field)
+        if (not isinstance(path, str) or not path.startswith("docs/architecture/")
+                or ".." in Path(path).parts or not (root / path).is_file()):
+            errors.append(governance_denial(
+                "GOV_REFERENCE_MISSING", f"{field} must reference an existing architecture document",
+                "Restore its checked-in document path and content"
+            ))
+    return errors
+
+
 def main():
     try:
         paths = tracked_files()
@@ -66,6 +160,7 @@ def main():
         {"path": path, "code": code, "reason": reason}
         for path in paths for code, reason in check_path(path)
     ]
+    violations.extend(check_governance_contract())
     report = {"status": "FAIL" if violations else "PASS", "checked_files": len(paths), "violations": violations}
     print(json.dumps(report, indent=2, ensure_ascii=False))
     if violations:
