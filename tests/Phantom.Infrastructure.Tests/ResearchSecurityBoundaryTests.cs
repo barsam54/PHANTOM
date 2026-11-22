@@ -278,4 +278,22 @@ public sealed class ResearchSecurityBoundaryTests
         }
     }
 
+    [TestMethod]
+    public async Task RotatingSigningKeyRevokesPreviouslyIssuedGrant()
+    {
+        DateTimeOffset now = new(2026, 11, 22, 0, 0, 0, TimeSpan.Zero);
+        var clock = new FixedClock(now);
+        var store = new ResearchMemoryStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")));
+        byte[] oldKey = RandomNumberGenerator.GetBytes(32);
+        byte[] newKey = RandomNumberGenerator.GetBytes(32);
+        var before = new SignedResearchMemoryAccess(store, oldKey, clock);
+        var after = new SignedResearchMemoryAccess(store, newKey, clock);
+        string oldGrant = before.Issue("exp-rotation", now.AddDays(-1), now.AddMinutes(5));
+        await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(
+            () => after.ReadAsync(oldGrant, "exp-rotation"));
+        string newGrant = after.Issue("exp-rotation", now.AddDays(-1), now.AddMinutes(5));
+        await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(
+            () => before.ReadAsync(newGrant, "exp-rotation"));
+    }
+
 }
