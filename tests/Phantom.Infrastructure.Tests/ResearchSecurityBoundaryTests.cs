@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Phantom.AgentFramework;
@@ -42,6 +43,8 @@ public sealed class ResearchSecurityBoundaryTests
     }
 
     [TestMethod]
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("macos")]
     public void UnixKeyAndStoragePreflightRejectPublicPermissions()
     {
         if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS()) return;
