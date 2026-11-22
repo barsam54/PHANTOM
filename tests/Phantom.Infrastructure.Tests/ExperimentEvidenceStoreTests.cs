@@ -56,4 +56,42 @@ public sealed class ExperimentEvidenceStoreTests
         await Assert.ThrowsExactlyAsync<ArgumentException>(() =>
             ExperimentEvidenceStore.SaveAsync(Request(), "failed", false, "artifacts"));
     }
+    [TestMethod]
+    public async Task PublishesCompleteEvidenceDespiteOrphanTempAndRejectsDuplicate()
+    {
+        string directory = Path.Combine(Path.GetTempPath(),
+            "phantom-evidence-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(directory);
+            string orphan = Path.Combine(directory,
+                ".EXP-STORE-001.abandoned.tmp");
+            await File.WriteAllTextAsync(orphan, "{\"ExperimentId\":");
+            string final = Path.Combine(directory, "EXP-STORE-001.json");
+            Assert.IsFalse(File.Exists(final));
+
+            ExperimentResult saved = await ExperimentEvidenceStore.SaveAsync(
+                Request(), "evaluated", true, directory);
+            Assert.AreEqual(final, saved.EvidenceLocation);
+            ExperimentResult? restored = JsonSerializer.Deserialize<ExperimentResult>(
+                await File.ReadAllTextAsync(final));
+            Assert.IsNotNull(restored);
+            Assert.AreEqual(saved, restored);
+            Assert.IsTrue(File.Exists(orphan));
+
+            await Assert.ThrowsExactlyAsync<IOException>(() =>
+                ExperimentEvidenceStore.SaveAsync(
+                    Request(), "must not replace", false, directory));
+            ExperimentResult? afterDuplicate = JsonSerializer.Deserialize<ExperimentResult>(
+                await File.ReadAllTextAsync(final));
+            Assert.AreEqual(saved, afterDuplicate);
+            Assert.AreEqual(2, Directory.GetFiles(directory).Length);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+                Directory.Delete(directory, recursive: true);
+        }
+    }
+
 }
