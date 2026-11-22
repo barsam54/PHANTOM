@@ -1,6 +1,6 @@
 # PHANTOM Gate 4 / Gate 5 verification protocol
 Date: 2026-11-22
-Status: IMPLEMENTED; HOST VERIFICATION PENDING
+Status: PASS — LOCAL INFRASTRUCTURE SCOPE (user-reported host execution)
 
 ## Baseline mapping
 - Gate 4: structured JSON evidence contains experiment ID, code version, input, execution configuration, verdict, evidence path, evaluator identity/version, actual/expected output, evaluator pass/fail counts and a reproducibility fingerprint.
@@ -14,4 +14,4 @@ Status: IMPLEMENTED; HOST VERIFICATION PENDING
 - This does not establish scientific repeatability across historical datasets, processes, hosts or package upgrades. No trading validity is implied.
 
 ## Acceptance
-Execute full project build and tests locally. Record exact counts and any failures before marking Gates 4 and 5 PASS. Until that output exists, both remain PENDING for this new implementation.
+Host evidence reported 2026-11-22 after commit 5df6fb5: project build succeeded in 1.5s; MSTest run passed 18/18, failed 0, skipped 0, duration 3.770s. Gates 4 and 5 PASS for the implemented local infrastructure acceptance tests. Scientific reproducibility across datasets, environments and production strategies remains OPEN; full PHANTOM baseline remains OPEN.
