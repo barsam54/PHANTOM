@@ -198,5 +198,5 @@ These describe framework concepts; concrete C# APIs must be verified against the
 
 - Added `SignedResearchMemoryAccess` (`c5da490`) for **HMAC-SHA256 authenticated**, expiring, experiment-specific read grants with UTC research cutoff. Signature verification is constant-time and precedes file reads. Keys are injected by the host and are not persisted in Git.
 - Added positive and negative tests (`6f17af5`) for valid signed grant, cross-experiment denial, expiration, wrong key, payload tampering, earlier research cutoff, and non-UTC current time.
-- **PENDING HOST BUILD/TEST**. Earlier 48/48 PASS does not cover these changes.
+- **HOST PASS (2026-11-22):** full infrastructure suite 49/49 succeeded, 0 failed/skipped, duration 2s 135ms. Evidence: `docs/evidence/2026-11-22-signed-research-grants-verification.md`. SML-04 remains OPEN.
 - **Trust boundaries still OPEN:** the signing operation must be accessible only to the trusted host (the public `Issue` method is not an end-user API); the host must manage key protection, rotation and identity verification. Direct store reads and filesystem access must be denied to untrusted code by process isolation/permissions. This is not an end-to-end authentication deployment and does not close SML-04. No release.
