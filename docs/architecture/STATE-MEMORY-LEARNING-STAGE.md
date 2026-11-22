@@ -34,6 +34,14 @@ Baseline: `docs/architecture/BASELINE.md` §§3, 6, 7, 9A
 
 No criterion is marked PASS based on this design document.
 
+## Implementation progress (2026-11-22)
+
+- Reviewed current `FirstWorkflow.RunAsync`: it creates fresh executor bindings and builds a fresh Microsoft Agent Framework workflow for each call; no workflow instance is cached or shared.
+- Added `tests/Phantom.Infrastructure.Tests/WorkflowStateIsolationTests.cs` in commit `65d8c0f`. It checks 12 simultaneous distinct workflow inputs and a sequential fresh-run case.
+- **PENDING HOST EXECUTION**: these tests have not yet been built or run; SML-01 is not PASS.
+- This tests observable input/output isolation only, not the framework's private/shared `IWorkflowContext` state. Add direct state-scope tests when state is actually used.
+- SML-02 through SML-06 remain OPEN; no checkpoint, research memory or learning implementation is claimed.
+
 ## Implementation order
 
 1. Inspect pinned C# Agent Framework APIs and current workflow construction to select supported state isolation and checkpoint primitives.
