@@ -98,4 +98,37 @@ public sealed class GovernanceImpactAssessmentTests
         Assert.AreEqual("REGRESSION", result.Comparison);
         Assert.IsFalse(result.EligibleForAcceptance);
     }
+    [TestMethod]
+    public void SimulatedRegressionRestoresIsolatedFileAndVerifiesDigest()
+    {
+        // Sandbox-only recovery probe. Does NOT imply project-wide rollback support.
+        string root = Path.Combine(Path.GetTempPath(), "phantom-gov-rollback-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            string path = Path.Combine(root, "state.txt");
+            byte[] original = System.Text.Encoding.UTF8.GetBytes("known-good");
+            File.WriteAllBytes(path, original);
+            byte[] expected = System.Security.Cryptography.SHA256.HashData(original);
+
+            File.WriteAllText(path, "regressed-change");
+            var assessment = GovernanceImpactAssessment.Evaluate([ErrorRate(.02, .30)],
+                true, true, true, true);
+            Assert.IsTrue(assessment.RollbackRequired);
+
+            // This example simulates a pre-authorized replacement of ONE isolated file.
+            // External side effects, databases, deployed services and Git are out of scope.
+            string restorePath = Path.Combine(root, "restore.tmp");
+            File.WriteAllBytes(restorePath, original);
+            File.Move(restorePath, path, overwrite: true);
+
+            CollectionAssert.AreEqual(expected,
+                System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path)));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
 }
