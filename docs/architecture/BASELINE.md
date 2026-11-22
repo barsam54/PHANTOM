@@ -142,6 +142,18 @@ Initial acceptance gate status (verified on host 2026-11-22; CI results user-rep
 Evidence: `docs/evidence/2026-11-22-gate4-gate5-verification.md` and `docs/evidence/2026-11-22-ci-verification.md`.
 These five gates are CLOSED only for the implemented deterministic local infrastructure scope. Overall baseline remains OPEN for model-backed evaluation, observability, state/memory/learning, domain-scientific validation, secure research execution, backup recovery, and cross-environment reproducibility.
 
+### 9A. Mandatory Stage-Specific Verification Policy
+
+Every implementation stage must define acceptance criteria before marking PASS:
+- Stage-specific tests cover its functional contract and negative/error cases.
+- Existing tests remain in regression coverage; changes must not silently remove coverage.
+- Integration tests verify the stage's connection to Microsoft Agent Framework when applicable.
+- Build and test execution are verified together; a successful build alone is not acceptance.
+- Small sanitized evidence records capture the stage, commit, test scope, counts, PASS/FAIL and remaining limitations.
+- A stage may reuse or improve existing tests; an increasing test count is not a requirement.
+- No stage is marked PASS without observed execution evidence. Pending host verification is explicitly PENDING.
+- Keep runtime data and logs outside Git; commit only compact evidence summaries.
+
 ### 10. Official Documentation
 
 - https://learn.microsoft.com/agent-framework/overview
