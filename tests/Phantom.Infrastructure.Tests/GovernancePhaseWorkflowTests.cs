@@ -41,6 +41,8 @@ public sealed class GovernancePhaseWorkflowTests
             var report = await GovernancePhaseWorkflow.RunAsync(root, new string('b', 40));
             Assert.AreEqual("BLOCKED", report.Steps[0].Status);
             Assert.AreEqual("BLOCKED", report.Steps[1].Status);
+            Assert.AreEqual("SKIPPED", report.Steps[4].Status);
+            Assert.AreEqual("GOV_UPSTREAM_BLOCKED", report.Steps[4].Code);
             Assert.AreEqual("OPEN", report.Acceptance);
             Assert.IsFalse(report.Accepted);
         }
