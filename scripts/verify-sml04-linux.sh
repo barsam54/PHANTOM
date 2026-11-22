@@ -42,6 +42,20 @@ def request(experiment_id):
         return json.loads(response)
 assert "grant" in request(experiment), "authorized worker denied"
 assert request(experiment + "-unauthorized").get("error") == "denied", "scope bypass"
-print("PASS worker socket authorization and wrong-scope denial")
+assert request(experiment).get("grant"), "authorized grant missing"
+read_response = None
+with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+    client.settimeout(5)
+    client.connect(path)
+    client.sendall((json.dumps({"operation": "read", "experimentId": experiment, "cutoffUtc": cutoff}) + "\n").encode())
+    response = b""
+    while not response.endswith(b"\n") and len(response) < 65536:
+        chunk = client.recv(8192)
+        if not chunk: break
+        response += chunk
+    read_response = json.loads(response)
+assert "record" in read_response, "authorized record read failed (seed admitted record before verification)"
+assert read_response["record"]["experimentId"] == experiment, "record scope mismatch"
+print("PASS worker grant, trusted memory read and wrong-scope denial")
 PY
 echo 'PASS distinct UID, key custody, memory traversal denial and socket policy'
