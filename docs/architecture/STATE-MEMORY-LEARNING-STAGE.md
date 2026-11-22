@@ -118,7 +118,7 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 
 - Added `ResearchMemoryStore.ReadForResearchAsync` (`d6ab90d`), requiring an explicit UTC research cutoff. It reuses validated readback, then rejects observations or stored research cutoffs beyond the caller's permitted cutoff and rejects non-training partitions.
 - Added positive and negative test cases (`bd36157`) for permitted read, disallowed earlier cutoff and non-UTC request.
-- **PENDING HOST BUILD/TEST**: expected total 41 tests. No acceptance gate is closed by unverified code.
+- **HOST PASS (2026-11-22)**: full suite 41/41 succeeded, 0 failed/skipped, duration 1s 928ms; evidence: `docs/evidence/2026-11-22-memory-scoped-read-verification.md`. The policy test scope passed, but SML-04 remains OPEN for authenticated authorization and experiment isolation.
 - **Limit:** the caller supplies the cutoff. This is an eligibility guard, **not authentication, tenant authorization, or a trust boundary**. An authenticated policy context and storage access restrictions remain required.
 
 ## Implementation order
