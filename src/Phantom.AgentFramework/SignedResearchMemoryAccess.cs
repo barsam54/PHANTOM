@@ -12,14 +12,17 @@ public sealed class SignedResearchMemoryAccess
 {
     private readonly byte[] key;
     private readonly ResearchMemoryStore store;
+    private readonly TimeProvider clock;
 
-    public SignedResearchMemoryAccess(ResearchMemoryStore store, byte[] signingKey)
+    public SignedResearchMemoryAccess(ResearchMemoryStore store, byte[] signingKey,
+        TimeProvider? clock = null)
     {
         this.store = store ?? throw new ArgumentNullException(nameof(store));
         ArgumentNullException.ThrowIfNull(signingKey);
         if (signingKey.Length < 32)
             throw new ArgumentException("Signing key must contain at least 32 bytes.", nameof(signingKey));
         key = (byte[])signingKey.Clone();
+        this.clock = clock ?? TimeProvider.System;
     }
 
     /// <summary>Trusted-host-only operation. Never expose this method to untrusted request handlers.</summary>
@@ -36,10 +39,9 @@ public sealed class SignedResearchMemoryAccess
     }
 
     public Task<ResearchMemoryCandidate> ReadAsync(string grant, string requestedExperimentId,
-        DateTimeOffset nowUtc, CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
-        if (nowUtc.Offset != TimeSpan.Zero)
-            throw new ArgumentException("Current time must be UTC.", nameof(nowUtc));
+        DateTimeOffset nowUtc = clock.GetUtcNow();
         if (string.IsNullOrWhiteSpace(grant))
             throw new UnauthorizedAccessException("Missing signed research grant.");
 
