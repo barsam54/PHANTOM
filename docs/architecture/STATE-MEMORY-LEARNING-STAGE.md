@@ -146,7 +146,7 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 
 - Added `stage-partial` and `verify-partial` to the separate-process probe (`305190f`, corrected C# literal in `58b6b1b`).
 - The staging process writes an intentionally truncated JSON manifest in an isolated external temporary directory, emits `PARTIAL_WRITE_READY`, and waits for an OS-level forced termination. A second process must emit `CORRUPT_REJECTED` when attempting to read that manifest.
-- **PENDING HOST BUILD/EXECUTION**. This is a controlled fault-injection test of **fail-closed readback**, not a claim that `ResearchMemoryStore.SaveAsync` was interrupted at a particular byte, nor proof of atomic writes, recovery, or framework checkpoint resume.
+- **HOST PASS (2026-11-22)**: Ubuntu build succeeded (1.4s); staged truncated JSON process was terminated with SIGKILL and independent read emitted `CORRUPT_REJECTED`. Evidence: `docs/evidence/2026-11-22-memory-abrupt-termination-verification.md`. This confirms fail-closed readback only, **not** interruption inside `SaveAsync`, atomic writes, recovery, or framework checkpoint resume.
 - The known gap remains: `SaveAsync` creates the final path before serialization; a process kill may leave a partial record and prevent retry under the same experiment ID. Atomic publish/recovery needs a separate design and test.
 
 ## Implementation order
