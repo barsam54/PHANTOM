@@ -1,0 +1,20 @@
+name: Repository Policy Guard
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    name: Validate repository layout and explain violations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Check tracked files against baseline
+        run: python3 scripts/check_repository_policy.py
