@@ -41,7 +41,7 @@ try
     else if (args[0] == "stage-partial")
     {
         Directory.CreateDirectory(memory);
-        await File.WriteAllTextAsync(Path.Combine(memory, experimentId + ".json"), "{\\\"SchemaVersion\\\":1,");
+        await File.WriteAllTextAsync(Path.Combine(memory, experimentId + ".json"), "{\"SchemaVersion\":1,");
         Console.WriteLine("PARTIAL_WRITE_READY");
         Console.Out.Flush();
         await Task.Delay(Timeout.InfiniteTimeSpan);
