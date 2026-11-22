@@ -128,6 +128,13 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 - **HOST PASS (2026-11-22):** full suite 42/42 succeeded, 0 failed/skipped; duration 1s 882ms. Evidence: `docs/evidence/2026-11-22-memory-experiment-scope-verification.md`. SML-04 remains OPEN because authenticated authorization and lower-level access restrictions are not implemented.
 - **Security boundary:** this is a scoped-read API, not authentication. The caller must establish the authorized experiment ID from a trusted identity/policy service and restrict access to lower-level `ReadAsync` and filesystem paths. Without that, a caller could supply its own authorization ID. No end-to-end tenant security claim is made.
 
+## First real workflow-to-memory integration test (2026-11-22)
+
+- Added `WorkflowMemoryIntegrationTests.RealAgentFrameworkWorkflowOutputPersistsAndRestoresWithScopedMemory` (`a562ffa`). It runs the **real pinned Microsoft Agent Framework** two-executor workflow, persists its output as evidence, stores an integrity-checked research-memory manifest, reopens the store, checks scoped retrieval, denies a different experiment, and detects tampering.
+- This is an actual framework-to-memory integration test, not a mocked workflow, but still uses deterministic test input and temporary local storage.
+- **PENDING HOST BUILD/TEST**: expected full suite 43 tests. Do not mark SML-06 PASS until execution is observed.
+- Not yet covered: process-kill/restart durability, trusted authorization source, production identity, model-backed or scientific evaluation, external worker isolation, and held-out learning.
+
 ## Implementation order
 
 1. Inspect pinned C# Agent Framework APIs and current workflow construction to select supported state isolation and checkpoint primitives.
