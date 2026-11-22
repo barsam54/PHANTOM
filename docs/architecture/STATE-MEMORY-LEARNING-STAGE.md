@@ -178,3 +178,11 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - This is a production implementation change, not a new simulated crash probe. It avoids exposing a partially serialized final evidence record to readers after a process interruption and preserves duplicate experiment rejection.
 - **HOST PASS (2026-11-22):** production evidence atomic publication regression and full infrastructure suite: 45/45 succeeded, 0 failed/skipped, duration 1s 911ms. Initial build was blocked by MSTEST0037; corrected in `d6904c2`. Evidence: `docs/evidence/2026-11-22-production-evidence-atomic-verification.md`.
 - Limits: directory metadata durability across power loss, malicious filesystem manipulation, cleanup of abandoned temporary files, and durable Agent Framework checkpoint resume remain OPEN. No release.
+
+## Explicit production evaluation-to-memory pipeline (2026-11-22)
+
+- Added `EvaluatedResearchWorkflow.RunAndRememberAsync` (`de2b43e`, input guard `c0d9415`). It calls the existing **real** `FirstWorkflow.RunWithEvidenceAsync`, reads its persisted evaluation evidence, computes the actual evidence-file SHA-256, and commits an immutable `ResearchMemoryCandidate` to external storage only when the evaluation passed with exact matching.
+- Failed evaluations retain their immutable evidence and **do not** enter training memory. The caller explicitly supplies observation and research cutoff times; admission rejects ineligible timestamps before running.
+- Added two integration tests (`c069d04`) for successful evaluation/persistence/scoped read and failed evaluation without memory promotion.
+- **PENDING HOST BUILD/TEST**. This change is not included in the prior 45/45 host PASS; do not claim acceptance until execution is observed.
+- Boundaries remain OPEN: trusted provenance/authorization, model-backed scientific evaluation, durable Agent Framework checkpoint restore, and independently demonstrated learning improvement. No release.
