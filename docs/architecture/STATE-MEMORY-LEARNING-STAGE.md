@@ -82,6 +82,14 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 4. Verify the pinned package compiles and run the full regression suite on host; commit sanitized evidence.
 5. Address persistent checkpoints separately. Do not claim crash/restart recovery from in-memory tests.
 
+## Checkpoint test implementation (2026-11-22)
+
+- Added `tests/Phantom.Infrastructure.Tests/WorkflowCheckpointTests.cs` (commit `ebefdec`).
+- This is an isolated two-executor streaming test using documented C# `CheckpointManager.CreateInMemory`, `RunStreamingAsync`, `WatchStreamAsync`, `Checkpoints`, and `RestoreCheckpointAsync` APIs.
+- It asserts original output, checkpoint availability, and output after restoring an intermediate checkpoint.
+- **PENDING HOST COMPILATION AND EXECUTION** against pinned package 1.28.0. Test code is not yet verified; SML-02 remains OPEN.
+- This test does not establish persistent restart recovery or external side-effect idempotency. Those require separate tests.
+
 ## Implementation order
 
 1. Inspect pinned C# Agent Framework APIs and current workflow construction to select supported state isolation and checkpoint primitives.
