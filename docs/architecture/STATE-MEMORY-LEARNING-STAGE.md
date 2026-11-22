@@ -105,6 +105,15 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 - **HOST PASS (2026-11-22)**: full suite 37/37 succeeded, 0 failed/skipped; see `docs/evidence/2026-11-22-memory-integrity-verification.md`.
 - **Boundary:** a matching hash verifies consistency with a supplied digest, **not authenticity** of its source. This does not yet bind the digest to signed/trusted experiment evidence, establish read authorization, or implement persistent memory. SML-03 and SML-04 remain OPEN.
 
+## Local durable memory manifest slice (2026-11-22)
+
+- Added `ResearchMemoryStore` (`a512664`), a minimal immutable JSON manifest store in a caller-supplied absolute external directory. Each record includes schema version and the existing provenance/admission contract.
+- Writes use `FileMode.CreateNew` to reject duplicate experiment IDs; reads revalidate the schema, experiment identity, admission rules and evidence-file SHA-256.
+- Added three tests (`9c76c5b`): persistence/readback across new store instances, duplicate rejection and evidence tampering; unsafe/unknown experiment IDs; unsupported schema.
+- **PENDING HOST BUILD AND TEST**: expected total 40 if the new tests compile and pass. No SML-03/SML-04 closure is claimed.
+- **Security and durability limits:** caller must secure the storage directory; this slice has no authorization boundary, signature verification, multi-process transaction protocol, symlink hardening, fsync guarantee, schema migration, or crash/power-loss recovery test. It is a local manifest store, not a production multi-tenant memory service or learning engine.
+- Do not attach this store automatically to Agent Framework workflows until access policy and provenance authenticity are verified.
+
 ## Implementation order
 
 1. Inspect pinned C# Agent Framework APIs and current workflow construction to select supported state isolation and checkpoint primitives.
