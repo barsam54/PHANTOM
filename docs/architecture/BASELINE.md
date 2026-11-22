@@ -2,7 +2,7 @@
 ## Baseline Laboratory Architecture
 
 Status: OPEN
-Implementation: NOT STARTED
+Implementation: IN PROGRESS (initial Agent Framework workflow and MSTest verified; full baseline OPEN)
 
 ### 1. Goal
 
