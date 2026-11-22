@@ -152,4 +152,45 @@ public sealed class ResearchSecurityBoundaryTests
         }
     }
 
+    [TestMethod]
+    [SupportedOSPlatform("linux")]
+    public async Task LinuxGrantEndpointAuthenticatesKernelPeerBeforeIssuingScope()
+    {
+        if (!OperatingSystem.IsLinux()) return;
+        string socketPath = Path.Combine(Path.GetTempPath(), "phantom-grant-" + Guid.NewGuid().ToString("N") + ".sock");
+        DateTimeOffset now = new(2026, 11, 22, 0, 0, 0, TimeSpan.Zero);
+        DateTimeOffset cutoff = now.AddDays(-1);
+        var clock = new FixedClock(now);
+        var signer = new SignedResearchMemoryAccess(
+            new ResearchMemoryStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))),
+            RandomNumberGenerator.GetBytes(32), clock);
+        var issuer = new TrustedResearchGrantIssuer(signer, clock);
+        using var listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        listener.Bind(new UnixDomainSocketEndPoint(socketPath));
+        listener.Listen(1);
+        try
+        {
+            using var client = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            await client.ConnectAsync(new UnixDomainSocketEndPoint(socketPath));
+            using Socket accepted = await listener.AcceptAsync();
+            var endpoint = new LinuxResearchGrantEndpoint(
+                new LinuxPeerIdentityProvider(new Dictionary<uint, string> { [GetUid()] = "exp-a" }, cutoff),
+                issuer);
+            string grant = endpoint.IssueForConnectedPeer(accepted, "exp-a", cutoff, TimeSpan.FromMinutes(5));
+            Assert.Contains('.', grant);
+            Assert.ThrowsExactly<UnauthorizedAccessException>(() =>
+                endpoint.IssueForConnectedPeer(accepted, "exp-b", cutoff, TimeSpan.FromMinutes(5)));
+            Assert.ThrowsExactly<UnauthorizedAccessException>(() =>
+                endpoint.IssueForConnectedPeer(accepted, "exp-a", now, TimeSpan.FromMinutes(5)));
+            var denied = new LinuxResearchGrantEndpoint(
+                new LinuxPeerIdentityProvider(new Dictionary<uint, string>(), cutoff), issuer);
+            Assert.ThrowsExactly<UnauthorizedAccessException>(() =>
+                denied.IssueForConnectedPeer(accepted, "exp-a", cutoff, TimeSpan.FromMinutes(5)));
+        }
+        finally
+        {
+            if (File.Exists(socketPath)) File.Delete(socketPath);
+        }
+    }
+
 }
