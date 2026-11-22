@@ -1,4 +1,6 @@
 using System.Runtime.Versioning;
+using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Phantom.AgentFramework;
@@ -111,6 +113,42 @@ public sealed class ResearchSecurityBoundaryTests
         {
             if (Directory.Exists(link)) Directory.Delete(link);
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [DllImport("libc", EntryPoint = "getuid")]
+    private static extern uint GetUid();
+
+    [TestMethod]
+    [SupportedOSPlatform("linux")]
+    public async Task LinuxPeerIdentityUsesKernelCredentialsNotCallerClaims()
+    {
+        if (!OperatingSystem.IsLinux()) return;
+        string socketPath = Path.Combine(Path.GetTempPath(), "phantom-peer-" + Guid.NewGuid().ToString("N") + ".sock");
+        DateTimeOffset cutoff = new(2026, 11, 21, 0, 0, 0, TimeSpan.Zero);
+        using var listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        listener.Bind(new UnixDomainSocketEndPoint(socketPath));
+        listener.Listen(1);
+        try
+        {
+            using var client = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            await client.ConnectAsync(new UnixDomainSocketEndPoint(socketPath));
+            using Socket accepted = await listener.AcceptAsync();
+            uint uid = GetUid();
+            var authorized = new LinuxPeerIdentityProvider(
+                new Dictionary<uint, string> { [uid] = "exp-kernel" }, cutoff);
+            ClaimsPrincipal principal = authorized.Authenticate(accepted);
+            Assert.AreEqual("linux-so-peercred", principal.Identity?.AuthenticationType);
+            Assert.AreEqual("exp-kernel",
+                principal.FindFirst(AuthenticatedResearchMemoryReader.ExperimentClaimType)?.Value);
+            Assert.ThrowsExactly<UnauthorizedAccessException>(() =>
+                new LinuxPeerIdentityProvider(new Dictionary<uint, string>(), cutoff).Authenticate(accepted));
+            using var disconnected = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            Assert.ThrowsExactly<UnauthorizedAccessException>(() => authorized.Authenticate(disconnected));
+        }
+        finally
+        {
+            if (File.Exists(socketPath)) File.Delete(socketPath);
         }
     }
 
