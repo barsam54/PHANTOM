@@ -28,7 +28,7 @@ public sealed class WorkflowCheckpointTests
         }
 
         Assert.AreEqual("MOTNAHP", initialOutput);
-        Assert.IsTrue(run.Checkpoints.Count >= 2,
+        Assert.IsGreaterThanOrEqualTo(run.Checkpoints.Count, 2,
             "Expected a checkpoint after each of the two executor supersteps.");
 
         // Restore the checkpoint after the first executor. The second executor
