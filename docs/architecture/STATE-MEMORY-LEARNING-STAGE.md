@@ -242,3 +242,9 @@ These describe framework concepts; concrete C# APIs must be verified against the
 - Added regression test for published manifest mode, private storage preflight and symlink ancestor denial (`16100fb`).
 - **PENDING HOST BUILD/TEST**. The prior 51/51 result predates these changes.
 - **Still OPEN:** dedicated trusted process and authenticated endpoint, host deployment, cross-UID access denial, symlink/TOCTOU-resistant filesystem operations, and key lifecycle. No SML-04 closure or release.
+
+## Private memory storage host verification (2026-11-22)
+
+- **HOST PASS:** Ubuntu host at `aaeeb4b`: infrastructure tests **52/52 succeeded, 0 failed, 0 skipped**, duration 1s 960ms.
+- Evidence: `docs/evidence/2026-11-22-private-memory-storage-verification.md` (`565d48a`).
+- Private manifest creation and ancestor symlink regression verification is complete for tested scope; SML-04 remains **OPEN** for trusted process/API isolation, provider-backed identity, key lifecycle, and cross-UID denial.
