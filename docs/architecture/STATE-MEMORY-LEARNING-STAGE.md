@@ -1,6 +1,6 @@
 # PHANTOM | State, Memory, Learning Stage
 
-Status: OPEN — initial isolation tests HOST PASS; direct state/checkpoint/memory/learning gates PENDING
+Status: OPEN — isolation and in-memory checkpoint tests HOST PASS; remaining gates PENDING
 Started: 2026-11-22
 Baseline: `docs/architecture/BASELINE.md` §§3, 6, 7, 9A
 
@@ -87,7 +87,7 @@ References: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoi
 - Added `tests/Phantom.Infrastructure.Tests/WorkflowCheckpointTests.cs` (commit `ebefdec`).
 - This is an isolated two-executor streaming test using documented C# `CheckpointManager.CreateInMemory`, `RunStreamingAsync`, `WatchStreamAsync`, `Checkpoints`, and `RestoreCheckpointAsync` APIs.
 - It asserts original output, checkpoint availability, and output after restoring an intermediate checkpoint.
-- **PENDING HOST COMPILATION AND EXECUTION** against pinned package 1.28.0. Test code is not yet verified; SML-02 remains OPEN.
+- **HOST PASS (2026-11-22)** against pinned package 1.28.0: 27/27 full infrastructure tests succeeded, 0 failed, 0 skipped. See `docs/evidence/2026-11-22-checkpoint-verification.md`. SML-02 remains OPEN for persistent restart, negative recovery, and idempotent side-effect coverage.
 - This test does not establish persistent restart recovery or external side-effect idempotency. Those require separate tests.
 
 ## Implementation order
