@@ -2,9 +2,9 @@ using System.Security.Cryptography;
 using System.Text;
 using Phantom.AgentFramework;
 
-if (args.Length != 2 || (args[0] != "write" && args[0] != "read"))
+if (args.Length != 2 || (args[0] != "write" && args[0] != "read" && args[0] != "stage-partial" && args[0] != "verify-partial"))
 {
-    Console.Error.WriteLine("Usage: write|read <absolute-external-directory>");
+    Console.Error.WriteLine("Usage: write|read|stage-partial|verify-partial <absolute-external-directory>");
     return 2;
 }
 
@@ -37,6 +37,26 @@ try
             observation, cutoff, "train", true);
         await new ResearchMemoryStore(memory).SaveAsync(candidate);
         Console.WriteLine("WRITE_PASS");
+    }
+    else if (args[0] == "stage-partial")
+    {
+        Directory.CreateDirectory(memory);
+        await File.WriteAllTextAsync(Path.Combine(memory, experimentId + ".json"), "{\\\"SchemaVersion\\\":1,");
+        Console.WriteLine("PARTIAL_WRITE_READY");
+        Console.Out.Flush();
+        await Task.Delay(Timeout.InfiniteTimeSpan);
+    }
+    else if (args[0] == "verify-partial")
+    {
+        try
+        {
+            await new ResearchMemoryStore(memory).ReadAsync(experimentId);
+            throw new InvalidOperationException("Corrupt manifest was accepted.");
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            Console.WriteLine("CORRUPT_REJECTED");
+        }
     }
     else
     {
