@@ -40,7 +40,7 @@ string keyDirectory = Path.GetDirectoryName(keyPath)
     ?? throw new UnauthorizedAccessException("Invalid key directory.");
 ResearchStorageBoundary.VerifyPrivateDirectory(keyDirectory);
 string socketPath = Path.Combine(socketDirectory, "research.sock");
-if (File.Exists(socketPath))
+if (PathExists(socketPath))
     throw new IOException("Socket path already exists; refusing to replace it.");
 byte[] key = ResearchSigningKeyLoader.Load(keyPath);
 SignedResearchMemoryAccess signer;
@@ -81,8 +81,17 @@ try
 finally
 {
     listener.Dispose();
-    if (File.Exists(socketPath)) File.Delete(socketPath);
+    if (PathExists(socketPath)) File.Delete(socketPath);
 }
 
 [DllImport("libc", EntryPoint = "getuid")]
 static extern uint GetUid();
+
+static bool PathExists(string path)
+{
+    // File.Exists may return false for Unix-domain socket filesystem entries.
+    // Directory enumeration detects sockets and dangling symlinks without following them.
+    string? parent = Path.GetDirectoryName(path);
+    return parent is not null && Directory.EnumerateFileSystemEntries(parent)
+        .Any(entry => string.Equals(entry, path, StringComparison.Ordinal));
+}
