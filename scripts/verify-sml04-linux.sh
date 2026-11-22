@@ -9,6 +9,7 @@ set -euo pipefail
 : "${PHANTOM_KEY_PATH:?Set absolute private signing key path}"
 : "${PHANTOM_EXPERIMENT_ID:?Set authorized experiment}"
 : "${PHANTOM_CUTOFF_UTC:?Set ISO8601 UTC cutoff}"
+sudo -n true || { echo "FAIL passwordless sudo required for verification"; exit 1; }
 [[ "$PHANTOM_HOST_USER" != "$PHANTOM_WORKER_USER" ]] || { echo 'FAIL same UID'; exit 1; }
 [[ "$(id -u "$PHANTOM_HOST_USER")" != "$(id -u "$PHANTOM_WORKER_USER")" ]] || { echo 'FAIL same UID'; exit 1; }
 [[ "$(id -u "$PHANTOM_HOST_USER")" != 0 ]] || { echo 'FAIL root host'; exit 1; }
