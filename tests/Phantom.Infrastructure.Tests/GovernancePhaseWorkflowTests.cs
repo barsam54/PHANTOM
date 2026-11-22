@@ -14,7 +14,7 @@ public sealed class GovernancePhaseWorkflowTests
         Assert.AreEqual("GOV-P0", report.Gate);
         Assert.AreEqual("OPEN", report.Acceptance);
         Assert.IsFalse(report.Accepted);
-        Assert.AreEqual(10, report.Steps.Count);
+        Assert.HasCount(10, report.Steps);
         CollectionAssert.AreEqual(GovernancePhaseWorkflow.OrderedStages,
             report.Steps.Select(x => x.Step).ToArray());
         Assert.AreEqual("CHECK_OK", report.Steps[0].Status);
