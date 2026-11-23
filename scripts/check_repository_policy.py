@@ -156,6 +156,22 @@ def check_governance_contract(root=ROOT):
                 "Before/after metric definitions, decisions or rollback proof fields missing",
                 "Restore declared before/after, risk, recovery and post-rollback criteria"
             ))
+    source_first = doc.get("source_first")
+    expected_source_fields = {
+        "decision_id", "scope", "problem", "baseline_ref", "candidate_solutions",
+        "chosen_option", "why_existing_solution_is_insufficient", "official_sources",
+        "evaluation_method", "expected_impact", "rollback_risk", "status"
+    }
+    if (not isinstance(source_first, dict)
+            or source_first.get("state") != "OPEN"
+            or source_first.get("decision_record") != SOURCE_DECISION_FILE
+            or set(source_first.get("required_fields", [])) != expected_source_fields
+            or source_first.get("no_invention_without_evidence") is not True):
+        errors.append(governance_denial(
+            "GOV_SOURCE_FIRST_CONTRACT_INVALID",
+            "Mandatory source-first/reuse-first contract missing or weakened",
+            "Restore the reviewed source-first decision contract and negative checks",
+            [GOVERNANCE_CONTRACT, SOURCE_DECISION_FILE]))
     if doc.get("phase_steps") != list(REQUIRED_STAGE_STEPS):
         errors.append(governance_denial(
             "GOV_STAGE_CONTRACT_MISMATCH", "End-to-end stage contract is missing or reordered",
