@@ -66,7 +66,7 @@
       "kind": "REUSE",
       "reference": "Microsoft Agent Framework Ollama provider + OllamaSharp 5.5.2",
       "outcome": "PREFERRED_FOR_OPTIONAL_LOCAL_INFERENCE",
-      "reason": "Microsoft's current official C# example explicitly uses OllamaSharp/OllamaApiClient.AsAIAgent, matching PHANTOM's integration. Version-pinned build and tests pass; host inference remains open."
+      "reason": "PHANTOM's pinned C# integration compiles using OllamaSharp/OllamaApiClient.AsAIAgent and Microsoft.Extensions.AI. Alternate official provider examples differ by presentation/pivot; version-specific support remains inconclusive until independently evaluated."
     }
   ],
   "chosen_option": "reuse_framework",
@@ -132,13 +132,12 @@
       "url": "https://learn.microsoft.com/en-us/agent-framework/agents/providers/ollama",
       "applies_to": "C# OllamaApiClient.AsAIAgent usage within Microsoft Agent Framework",
       "reviewed_version": "Published provider example reviewed 2026-11-23; OllamaSharp pinned 5.5.2 and Microsoft Agent Framework pinned 1.28.0",
-      "verification": "Official CURRENT Microsoft Agent Framework C# Ollama example uses OllamaSharp/OllamaApiClient.AsAIAgent as PHANTOM does. Previous alleged C# OllamaChatClient mismatch was incorrect: that name belongs to the Python example. Current pinned 1.28.0/5.5.2 builds and tests pass; real host inference remains unverified.",
+      "verification": "Two official documentation presentations diverge: GitHub Actions live page returned OllamaChatClient/Native Ollama, while the Microsoft provider search result for C# references OllamaSharp/OllamaApiClient.AsAIAgent. Official source presentation may vary by locale/pivot/version. PHANTOM pinned Microsoft.Agents.AI 1.28.0 and OllamaSharp 5.5.2 compile and tests succeed; provider selection/official version alignment cannot be certified by page-term assertions. Host inference remains untested.",
       "expected_terms": [
-        "OllamaSharp",
-        "OllamaApiClient",
-        "AsAIAgent"
+        "OllamaChatClient",
+        "Native Ollama"
       ],
-      "source_alignment": "C_SHARP_PROVIDER_PATTERN_MATCH_CONFIRMED_FROM_CURRENT_MICROSOFT_DOCS; PINNED_BUILD_CI_PASS; HOST_MODEL_INFERENCE_OPEN"
+      "source_alignment": "INCONCLUSIVE_OFFICIAL_DOC_VERSION_OR_PIVOT_VARIANCE: do not conclude C# parity or mismatch from keyword presence alone. Compare docs for exact pinned versions; running local model and independent validation remain OPEN."
     },
     {
       "provider": "Ollama",
