@@ -88,7 +88,7 @@ This is a governance responsibility, **not** SML learning, and does not create a
 
 **GitHub (development system, outside Microsoft Agent Framework)**
 - Actions job dependency, permissions and reusable workflows: https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
-- GitHub Actions does not guarantee rejection of a direct push without an enforceable branch rule. The current private main is unprotected; upgrade/publication/alternative enforcement needs separate security review.
+- GitHub Actions does not guarantee rejection of a direct push without an enforceable branch rule. As observed on 2026-11-23, repository main is public and protected by active ruleset PHANTOM-MAIN-PROTECTION (#27867625). Two GitHub Actions status contexts are required and no bypass actors are configured. A non-draft negative test PR (#2) with a failed required policy check returned mergeable_state=blocked, and was closed unmerged. This is historical evidence, not a live reevaluation or proof of a rejected direct push. See docs/evidence/2026-11-23-required-check-negative-pr.md; periodically recheck ruleset drift.
 
 ## Sequencing: capability slices, ONE acceptance
 A. Read and preserve earlier stage evidence. Keep existing repository layout guard, extend rather than delete it.
