@@ -57,3 +57,13 @@ Evidence scope: `governance.dotnet_ci` only; prior-run results are tied to their
 - [Reuse eligibility artifact (14794472790)](https://github.com/barsam54/PHANTOM/actions/runs/45123226740) captures the provider-attested comparison.
 
 **Scope and remaining limitations:** This intentionally over-restrictive full-tree check may deny reuse for changes irrelevant to the test. It does not yet derive minimal per-criterion dependency fingerprints; the conservative denial is safer than applying mismatched evidence. Neither the standalone check nor historical receipts certify GOV-P0 acceptance or the full end-to-end phase. All six capability acceptance states remain OPEN until complete stage-to-criterion mapping and approved acceptance are demonstrated.
+
+## Addendum 2026-11-23: six-criterion evidence traceability matrix
+
+- Full-PR-head SHA `eb749da0bfe8ce01b4b811f9d7ba681fdb93b80d`: [Repository Policy Guard run 45123693245](https://github.com/barsam54/PHANTOM/actions/runs/45123693245) and [.NET run 45123693284](https://github.com/barsam54/PHANTOM/actions/runs/45123693284) both concluded **success**.
+- A read-only `scripts/governance_criteria_matrix.py` now derives **all six** GOV-P0 acceptance criteria from the versioned governance contract and requires two authentic scoped historical receipts and the .NET reuse eligibility decision.
+- GitHub policy CI's step `Build six-criterion evidence traceability matrix` succeeded. It emitted an independent `governance-criteria-matrix` Artifact with six pending acceptance criteria, two historical CI proofs and **zero** capability-level acceptances.
+- Negative tests reject missing/duplicate criteria, forged PASS, unverified/off-criterion CI evidence, missing reuse decision and contradictory reuse claim. The dashboard remains a read-only projection; neither a list of six nor successful CI grants GOV-P0 PASS.
+- Outstanding single-integration acceptance is **not** demonstrated: full authorized phase run, reproducible forced failure/resume, nonduplicated external side effects, automatic commit/PR and Projects update, paired impact evaluation, rollback and independent post-rollback verification.
+
+This artifact is a criterion-to-evidence **coverage inventory**, not a final acceptance verdict. The versioned contract and full GOV-P0 remain OPEN.
