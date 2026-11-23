@@ -300,6 +300,7 @@ jobs:
             --policy-receipt "$RUNNER_TEMP/prior-evidence-reused.json" \
             --dotnet-receipt "$RUNNER_TEMP/dotnet-evidence-readback.json" \
             --reuse-decision "$RUNNER_TEMP/dotnet-reuse-eligibility.json" \
+            --pair-receipt "$RUNNER_TEMP/governance-evidence-pair.json" \
             --output "$RUNNER_TEMP/governance-criteria-matrix.json"
           python3 - <<'PY'
           import json, os
@@ -307,6 +308,7 @@ jobs:
           report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "governance-criteria-matrix.json").read_text())
           assert report["criteria_count"] == 6
           assert report["historical_proofs_checked"] == 2
+          assert report["historical_proofs_same_checkout_verified"] is True
           assert report["accepted_capabilities"] == 0
           assert report["governance_acceptance"] == "OPEN"
           assert all(c["acceptance"] == "OPEN" for c in report["capabilities"])
