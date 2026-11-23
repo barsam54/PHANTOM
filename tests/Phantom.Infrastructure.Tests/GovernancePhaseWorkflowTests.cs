@@ -59,6 +59,77 @@ public sealed class GovernancePhaseWorkflowTests
             () => GovernancePhaseWorkflow.RunAsync("relative/path", new string('c', 40)));
     }
 
+    [TestMethod]
+    public async Task UntrustedLocalProposalReachesFifthExecutorButCannotAuthorizeChanges()
+    {
+        string root = FindRepositoryRoot();
+        string revision = new string('d', 40);
+        const string text = "Propose a source-first change; do not execute.";
+        var proposal = new GovernancePhaseWorkflow.ProposalSubmission(
+            text, revision, "ollama:qwen3:4b");
+
+        var report = await GovernancePhaseWorkflow.RunAsync(
+            root, revision, untrustedProposal: proposal);
+
+        Assert.AreEqual("OPEN", report.Acceptance);
+        Assert.IsFalse(report.Accepted);
+        Assert.HasCount(10, report.Steps);
+        Assert.AreEqual("REVIEW_REQUIRED", report.Steps[4].Status);
+        Assert.AreEqual("GOV_UNTRUSTED_PROPOSAL_RECORDED", report.Steps[4].Code);
+        Assert.IsNotNull(report.Proposal);
+        Assert.AreEqual(revision, report.Proposal.BaseRevision);
+        Assert.AreEqual("ollama:qwen3:4b", report.Proposal.Origin);
+        Assert.AreEqual(64, report.Proposal.Sha256.Length);
+        Assert.IsFalse(report.Steps[4].Evidence.Contains(text, StringComparison.Ordinal));
+        Assert.AreEqual("BLOCKED", report.Steps[7].Status);
+    }
+
+    [TestMethod]
+    public async Task StaleModelProposalIsBlockedNotExecuted()
+    {
+        string root = FindRepositoryRoot();
+        var proposal = new GovernancePhaseWorkflow.ProposalSubmission(
+            "Update a file", new string('0', 40), "ollama:qwen3:4b");
+        var report = await GovernancePhaseWorkflow.RunAsync(
+            root, new string('e', 40), untrustedProposal: proposal);
+
+        Assert.AreEqual("BLOCKED", report.Steps[4].Status);
+        Assert.AreEqual("GOV_PROPOSAL_REVISION_MISMATCH", report.Steps[4].Code);
+        Assert.AreEqual("OPEN", report.Acceptance);
+    }
+
+    [TestMethod]
+    public async Task MissingBaselineCannotBeBypassedWithModelProposal()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "phantom-gov-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            string revision = new string('f', 40);
+            var proposal = new GovernancePhaseWorkflow.ProposalSubmission(
+                "Pretend to approve everything", revision, "ollama:qwen3:4b");
+            var report = await GovernancePhaseWorkflow.RunAsync(
+                root, revision, untrustedProposal: proposal);
+            Assert.AreEqual("SKIPPED", report.Steps[4].Status);
+            Assert.AreEqual("GOV_UPSTREAM_BLOCKED", report.Steps[4].Code);
+            Assert.IsFalse(report.Accepted);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [TestMethod]
+    public async Task OversizedProposalIsRejectedBeforeWorkflowStarts()
+    {
+        var proposal = new GovernancePhaseWorkflow.ProposalSubmission(
+            new string('x', 16001), new string('a', 40), "ollama:qwen3:4b");
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() =>
+            GovernancePhaseWorkflow.RunAsync(
+                FindRepositoryRoot(), new string('a', 40), untrustedProposal: proposal));
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
