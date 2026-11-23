@@ -11,6 +11,7 @@
     "docs/architecture/GOVERNANCE-CONTROLLER.md",
     "docs/architecture/SOURCE-FIRST-DECISION.json",
     "docs/evidence/2026-11-23-governance-ten-step-workflow-ci.md",
+    "docs/evidence/2026-11-23-host-ollama-inference-removal.md",
     "docs/evidence/2026-11-23-required-check-negative-pr.md",
     "docs/evidence/2026-11-23-source-first-ruleset-readback.md",
     "infra/local-models/ollama-qwen3-4b.json",
@@ -144,7 +145,7 @@
       "url": "https://docs.ollama.com/api/chat",
       "applies_to": "Local model inference endpoint and optional response settings",
       "reviewed_version": "Official Ollama API reference checked 2026-11-23",
-      "verification": "No host-inference claim until explicit user-host smoke result.",
+      "verification": "No host-inference claim until explicit user-host smoke result. User-host observed qwen3:4b CPU inference produced English reasoning instead of final Persian answer, then model removed. Evidence: docs/evidence/2026-11-23-host-ollama-inference-removal.md. CI does not verify local model inference.",
       "expected_terms": [
         "Generate a chat message",
         "model"
@@ -152,7 +153,7 @@
     }
   ],
   "evaluation_method": "Before implementation, compare official supported APIs and pinned-version builds; after implementation verify CI negative tests, end-to-end phase acceptance, measured impact and rollback. PR-scoped source-first enforcement compares every changed path from immutable base SHA to the review record. Required status checks must be configured separately to block merges. CI fetches all declared official documents live and checks source-specific text claims; this is not independent verification of interpretation or pinned NuGet API. GitHub REST readback in versioned evidence observes effective ruleset configuration but does not substitute for a negative merge test. Non-draft PR #2 on protected main intentionally failed the required Repository Policy Guard; live GitHub mergeable_state=blocked observed, then PR closed without merge; this does not establish rejected direct push or attempted merge API call.",
-  "expected_impact": "Reduce unnecessary custom infrastructure, unsupported design proposals and duplicated tests while preserving one governance workflow. Optional Qwen3 4b proposal agent reuses official C# integration; absent model service returns an error; no autonomous code edits.",
+  "expected_impact": "Reduce unnecessary custom infrastructure, unsupported design proposals and duplicated tests while preserving one governance workflow. Optional Qwen3 4b proposal agent reuses official C# integration; absent model service returns an error; no autonomous code edits. Recorded user-host bounded Ollama CPU token generation and failed Persian answer; qwen3:4b removed. Versioned optional profile is archival and disabled; no model can be considered installed or approved.",
   "rollback_risk": "Decision-contract/policy changes are Git-revertible before merge; this is not proof of rollback of external state.",
   "status": "EVIDENCE_REVIEWED"
 }
