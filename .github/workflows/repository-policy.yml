@@ -166,6 +166,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
           CURRENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PAIRED_POLICY_HEAD_SHA: ${{ steps.prior_evidence.outputs.head_sha }}
         run: |
           python3 - <<'PY'
           import json, os, sys, urllib.request
@@ -179,7 +180,9 @@ jobs:
           runs = get(api + "/actions/workflows/dotnet-build-test.yml/runs?event=pull_request&status=success&per_page=100")["workflow_runs"]
           selected = None
           for run in runs:
-              if (run.get("conclusion") != "success" or run.get("head_sha") == os.environ["CURRENT_HEAD_SHA"]
+              if (run.get("conclusion") != "success"
+                  or run.get("head_sha") != os.environ["PAIRED_POLICY_HEAD_SHA"]
+                  or run.get("head_sha") == os.environ["CURRENT_HEAD_SHA"]
                   or (run.get("head_repository") or {}).get("full_name") != os.environ["REPOSITORY"]):
                   continue
               artifacts = get(api + "/actions/runs/" + str(run["id"]) + "/artifacts?per_page=100")["artifacts"]
@@ -231,6 +234,36 @@ jobs:
               f.write("- Historical run/reuse: **CHECK_OK**. Current stage acceptance: **OPEN**.\n")
           print("CROSS_RUN_DOTNET_TEST_LOG_REUSE: PASS; GOVERNANCE: OPEN")
           PY
+      - name: Bind independent Policy and .NET evidence to one exact checkout
+        if: github.event_name == 'pull_request'
+        run: |
+          python3 scripts/verify_governance_evidence_pair.py \
+            --policy-receipt "$RUNNER_TEMP/prior-evidence-reused.json" \
+            --dotnet-receipt "$RUNNER_TEMP/dotnet-evidence-readback.json" \
+            --output "$RUNNER_TEMP/governance-evidence-pair.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          result = json.loads((Path(os.environ["RUNNER_TEMP"]) / "governance-evidence-pair.json").read_text())
+          assert result["status"] == "PAIR_CHECK_OK"
+          assert result["pair_verified"] is True
+          assert result["stage_accepted"] is False
+          assert result["governance_acceptance"] == "OPEN"
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("\n### Two-run provenance pairing\n")
+              summary.write("- Matching historical head: " + result["historical_pr_head_sha"] + "\n")
+              summary.write("- Exact checkout: " + result["historical_checkout_sha"] + "\n")
+              summary.write("- Policy/.NET criteria paired: **CHECK_OK**; stage acceptance: **OPEN**.\n")
+          print("GOVERNANCE_EVIDENCE_PAIR: CHECK_OK; GOV-P0: OPEN")
+          PY
+      - name: Preserve cross-workflow evidence pairing
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-evidence-pair
+          path: ${{ runner.temp }}/governance-evidence-pair.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Deny historical .NET reuse when current repository inputs differ
         if: github.event_name == 'pull_request'
         env:
