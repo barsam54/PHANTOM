@@ -70,7 +70,7 @@ class DotnetEvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             _, read = fixture(td)
             path = Path(td) / "dotnet-tests.log"
-            log = b"Total tests: 24\\nPassed: 23\\nFailed: 1\\n"
+            log = b"Total tests: 24\nPassed: 23\nFailed: 1\n"
             path.write_bytes(log)
             receipt = Path(td) / "dotnet-ci-receipt.json"
             data = json.loads(receipt.read_text())
