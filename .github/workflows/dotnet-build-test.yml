@@ -24,5 +24,9 @@ jobs:
         run: dotnet restore tests/Phantom.Infrastructure.Tests/Phantom.Infrastructure.Tests.csproj
       - name: Build infrastructure test project and referenced source
         run: dotnet build tests/Phantom.Infrastructure.Tests/Phantom.Infrastructure.Tests.csproj --configuration Release --no-restore
+      - name: Build local proposal CLI without invoking Ollama
+        run: dotnet build src/Phantom.LocalGovernanceCli/Phantom.LocalGovernanceCli.csproj --configuration Release
+      - name: Validate local proposal CLI profile without inference
+        run: dotnet run --project src/Phantom.LocalGovernanceCli/Phantom.LocalGovernanceCli.csproj --configuration Release --no-build -- --check-profile
       - name: Run MSTest using Microsoft.Testing.Platform
         run: dotnet test --project tests/Phantom.Infrastructure.Tests/Phantom.Infrastructure.Tests.csproj --configuration Release --no-restore
