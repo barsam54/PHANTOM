@@ -80,29 +80,88 @@ def inventory(root=ROOT):
 
 
 def markdown(report):
-    lines = ["# PHANTOM Governance: discovery only", "",
-             "Commit: " + report["commit_sha"], "",
-             "**GOV-P0 OPEN. Historical files are NOT independently verified.**", "",
-             "| Capability | Contract status | Independent proof | Required acceptance |",
-             "| --- | --- | --- | --- |"]
-    for item in report["capabilities"]:
-        lines.append("| " + " | ".join([item["id"], item["contract_state"],
-                                      "NOT VERIFIED", item["next_proof"]]) + " |")
-    lines.extend(["", "Historical evidence files found: " +
-                  str(report["historical_evidence_files_found"]) +
-                  " (existence only; not evidence acceptance)", "",
-                  "## Stage filename hints (NOT an acceptance conclusion)"])
-    for gate, hints in report["stage_filename_hints_unverified"].items():
-        lines.append("- " + gate + ": " + str(len(hints)) + " file name matches")
+    """GitHub Actions native dashboard. Status is derived only from contract."""
+    capabilities = report["capabilities"]
+    completed = sum(item["verified"] and item["contract_state"] == "PASS"
+                    for item in capabilities)
+    total = len(capabilities)
+    pct = round(100 * completed / total) if total else 0
+    labels = {
+        "dashboard": "1. Dashboard",
+        "evidence": "2. Evidence",
+        "end_to_end": "3. End-to-end execution",
+        "enforcement": "4. Mandatory enforcement",
+        "baseline_review": "5. Baseline review",
+        "impact_rollback": "6. Impact / rollback",
+    }
+    lines = [
+        "# PHANTOM | Governance P0 dashboard",
+        "",
+        "> **ACCEPTANCE: OPEN**. Read-only projection of the versioned contract.",
+        "> A green CI run is not acceptance of an unverified capability.",
+        "",
+        "### Verified capability acceptance: " + str(completed) +
+        " / " + str(total) + " (" + str(pct) + "%)",
+        "",
+        "`" + ("█" * completed) + ("░" * (total - completed)) + "`",
+        "",
+        "| Capability | Decision | Verified | Next acceptance proof |",
+        "|---|---|---|---|",
+    ]
+    for item in capabilities:
+        state = item["contract_state"]
+        verified = item["verified"] and state == "PASS"
+        label = labels.get(item["id"], item["id"])
+        lines.append("| " + label + " | **" + state + "** | " +
+                     ("YES" if verified else "NO") + " | " +
+                     item["next_proof"].replace("|", "/") + " |")
+    lines.extend([
+        "",
+        "### Execution position",
+        "",
+        "- Revision: `" + report["commit_sha"] + "`",
+        "- Contract: `" + report["contract_path"] + "`",
+        "- Contract SHA-256: `" + report["contract_digest_sha256"] + "`",
+        "- Baseline SHA-256: `" + report["baseline_digest_sha256"] + "`",
+        "- Historical evidence files found: **" +
+            str(report["historical_evidence_files_found"]) +
+            "**; independently verified by this job: **NO**.",
+        "- GitHub Projects synchronized: **NO**.",
+        "",
+        "### Execution chain (not yet accepted)",
+        "",
+        "`discover → baseline_review → dependencies → plan → authorized_execute → build_and_tests → evidence → acceptance → publish → checkpoint`",
+        "",
+        "### Verified and unverified enforcement",
+        "",
+    ])
     barrier = report["merge_barrier_history"]
-    lines.extend(["", "## Protected-main historical evidence (not a live check)",
-                  "Required-check failure observed blocking non-draft test PR #" +
-                  str(barrier["test_pr"]) + " in run " + str(barrier["policy_run"]) +
-                  ". Evidence: `" + barrier["evidence"] + "`.",
-                  "Current ruleset revalidated by this job: NO. Direct push denial tested: NO.",
-                  "", "GitHub Projects synchronized: NO.", ""])
+    lines.extend([
+        "- Historical negative check: test [PR #" + str(barrier["test_pr"]) +
+        "](https://github.com/barsam54/PHANTOM/pull/" +
+        str(barrier["test_pr"]) + ") was BLOCKED by failed required status in " +
+        "[run " + str(barrier["policy_run"]) + "](https://github.com/barsam54/PHANTOM/actions/runs/" +
+        str(barrier["policy_run"]) + ").",
+        "- Current ruleset validated in this run: **NO**. Direct-push denial tested: **NO**.",
+        "- Evidence: `" + barrier["evidence"] + "`.",
+        "",
+        "### Remaining blockers",
+        "",
+    ])
+    for blocker in report["remaining"]:
+        lines.append("- " + blocker)
+    lines.extend([
+        "",
+        "### Audit links",
+        "",
+        "- [Source-first decision](../../blob/governance/p0-unified-controller-contract/docs/architecture/SOURCE-FIRST-DECISION.json)",
+        "- [Controller contract](../../blob/governance/p0-unified-controller-contract/docs/architecture/GOVERNANCE-CONTRACT.json)",
+        "- [PR #1 (DRAFT)](https://github.com/barsam54/PHANTOM/pull/1)",
+        "",
+        "This job is a visualization only. Full GOV-P0 remains **OPEN**.",
+        "",
+    ])
     return "\n".join(lines)
-
 
 def main():
     p = argparse.ArgumentParser()
