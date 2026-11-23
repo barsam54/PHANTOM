@@ -50,6 +50,13 @@ These are required *future* controller fields, **not a claim of an existing prod
 ```
 A denial must identify *what* violated *which* criterion, and supply an actionable way to continue; no blanket blocking unrelated tasks. Do not claim automatic repair without authorized worker, bounded retries and proven idempotency.
 
+## Source-first and reuse-first admission (cross-cutting across six capabilities)
+No new controller, seventh capability, or parallel state authority. Before material decisions the governance runner must (a) inspect local code/baseline/evidence and existing CI failure, (b) consult primary, current vendor documentation for the pinned version, (c) compare at least a supported reuse/extension option with proposed new code, (d) record exact vendor URL, applicable API/feature, reviewed version and executable verification, (e) measure risk, impact and recovery, (f) retain an actionable denial if reliable sources are absent or contradictory. A documentation URL alone is NOT proof of compatibility, permission, availability or quality.
+
+The versioned initial decision record is `SOURCE-FIRST-DECISION.json`. `scripts/check_repository_policy.py` checks its presence, fields, official HTTPS hosts, option comparison and consistency with `GOVERNANCE-CONTRACT.json`. These are **schema/bootstrap checks**, not web retrieval, semantic source verification, or enforcement over every future code change. Source status `EVIDENCE_REVIEWED` is NOT approval to modify baseline/security policy.
+
+**Full acceptance remains OPEN** until each material PR is bound to its own decision ID and changed-files SHA; vendor references are checked for exact API/version; regression and rollback are proven; and an effective branch merge rule rejects missing evidence. Prefer Microsoft official supported primitives; advisory external patterns cannot authorize a second orchestrator or justify API claims.
+
 ## Impact and rollback acceptance protocol (sixth capability)
 This is a governance responsibility, **not** SML learning, and does not create a second controller. Its independent evaluation step must reject self-scoring by an autonomous coding worker.
 
