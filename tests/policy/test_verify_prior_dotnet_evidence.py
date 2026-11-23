@@ -22,7 +22,7 @@ RAW = "https://raw.githubusercontent.com/o/r/" + CHECKOUT + "/"
 def fixture(tmp):
     baseline = b"## 12. P0"
     contract = b'{"gate":"GOV-P0","status":"OPEN"}'
-    log = b"Total tests: 24\nPassed: 24\n"
+    log = b"Total tests: 24\nPassed: 24\nFailed: 0\n"
     dig = lambda v: hashlib.sha256(v).hexdigest()
     doc = {
         "schema_version": "phantom.governance.dotnet-receipt.v1",
@@ -65,6 +65,20 @@ class DotnetEvidenceTests(unittest.TestCase):
             self.assertEqual("CHECK_OK", second["status"])
             self.assertFalse(second["new_build_or_test_invoked_by_verifier"])
             self.assertEqual("OPEN", second["governance_acceptance"])
+
+    def test_refuses_nonzero_test_failure_in_log(self):
+        with tempfile.TemporaryDirectory() as td:
+            _, read = fixture(td)
+            path = Path(td) / "dotnet-tests.log"
+            log = b"Total tests: 24\\nPassed: 23\\nFailed: 1\\n"
+            path.write_bytes(log)
+            receipt = Path(td) / "dotnet-ci-receipt.json"
+            data = json.loads(receipt.read_text())
+            data["test_log_sha256"] = hashlib.sha256(log).hexdigest()
+            data["test_log_bytes"] = len(log)
+            receipt.write_text(json.dumps(data))
+            self.assertEqual("DOTNET_LOG_FAILURE_MARKER",
+                module.verify("o/r", RUN, HEAD, td, read=read)["code"])
 
     def test_refuses_forged_pass_in_receipt(self):
         with tempfile.TemporaryDirectory() as td:
