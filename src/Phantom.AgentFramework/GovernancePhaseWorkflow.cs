@@ -116,7 +116,8 @@ public static class GovernancePhaseWorkflow
         Report input = new(repositoryRoot, revision, "GOV-P0", "OPEN",
             Array.Empty<StepDecision>());
         await using StreamingRun run = await InProcessExecution.RunStreamingAsync(
-            BuildWorkflow(), input, manager);
+            BuildWorkflow(), input, manager,
+            sessionId: "gov-p0-" + revision, cancellationToken: cancellationToken);
         int outputs = 0;
         await foreach (WorkflowEvent evt in run.WatchStreamAsync(cancellationToken))
         {
@@ -130,6 +131,35 @@ public static class GovernancePhaseWorkflow
         if (outputs != 1 || run.Checkpoints.Count == 0)
             throw new InvalidOperationException("GOV_CHECKPOINT_NOT_CAPTURED");
         return run.Checkpoints.Count;
+    }
+
+    /// <summary>Re-open a durable store and rehydrate the same Microsoft workflow.</summary>
+    public static async Task<int> ResumeFromDiskCheckpointsAsync(
+        string checkpointDirectory, string revision,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(checkpointDirectory);
+        ArgumentException.ThrowIfNullOrWhiteSpace(revision);
+        if (!Path.IsPathFullyQualified(checkpointDirectory) || !Directory.Exists(checkpointDirectory))
+            throw new ArgumentException("Existing absolute checkpoint directory required.", nameof(checkpointDirectory));
+        using var store = new FileSystemJsonCheckpointStore(new DirectoryInfo(checkpointDirectory));
+        var index = (await store.RetrieveIndexAsync("gov-p0-" + revision)).ToArray();
+        if (index.Length < 2)
+            throw new InvalidOperationException("GOV_CHECKPOINT_HISTORY_MISSING");
+        // Resume from the penultimate superstep to exercise actual work without repeating all
+        // earlier steps. No external writes exist in this read-only governance workflow.
+        CheckpointManager manager = CheckpointManager.CreateJson(store);
+        await using Run run = await InProcessExecution.ResumeAsync(
+            BuildWorkflow(), index[^2], manager, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        var reports = run.NewEvents.OfType<ExecutorCompletedEvent>()
+            .Where(evt => evt.ExecutorId == "GovCheckpoint" && evt.Data is Report)
+            .Select(evt => (Report)evt.Data!)
+            .ToArray();
+        if (reports.Length != 1 || reports[0].Acceptance != "OPEN" ||
+            reports[0].Steps.Count != OrderedStages.Length)
+            throw new InvalidOperationException("GOV_CHECKPOINT_RESUME_INCOMPLETE");
+        return reports[0].Steps.Count;
     }
 
     private static Workflow BuildWorkflow()
