@@ -30,6 +30,13 @@
       "reference": "new standalone scheduling engine",
       "outcome": "REJECTED",
       "reason": "Duplicates official workflow orchestration and increases architecture/maintenance risk."
+    },
+    {
+      "id": "reuse_ollamasharp",
+      "kind": "REUSE",
+      "reference": "Microsoft Agent Framework Ollama provider + OllamaSharp 5.5.2",
+      "outcome": "PREFERRED_FOR_OPTIONAL_LOCAL_INFERENCE",
+      "reason": "Microsoft official C# provider example uses OllamaApiClient.AsAIAgent; avoids developing a custom inference transport."
     }
   ],
   "chosen_option": "reuse_framework",
@@ -69,10 +76,24 @@
       "applies_to": "CI passing does not necessarily satisfy or enforce merge requirements",
       "reviewed_version": "GitHub official documentation checked 2026-11-23",
       "verification": "Current private main has no demonstrated effective enforced required check: OPEN."
+    },
+    {
+      "provider": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/agent-framework/agents/providers/ollama",
+      "applies_to": "C# OllamaApiClient.AsAIAgent usage within Microsoft Agent Framework",
+      "reviewed_version": "Published provider example reviewed 2026-11-23; OllamaSharp pinned 5.5.2 and Microsoft Agent Framework pinned 1.28.0",
+      "verification": "CI Build and MSTest and CLI --check-profile only; actual local inference pending."
+    },
+    {
+      "provider": "Ollama",
+      "url": "https://docs.ollama.com/api/chat",
+      "applies_to": "Local model inference endpoint and optional response settings",
+      "reviewed_version": "Official Ollama API reference checked 2026-11-23",
+      "verification": "No host-inference claim until explicit user-host smoke result."
     }
   ],
   "evaluation_method": "Before implementation, compare official supported APIs and pinned-version builds; after implementation verify CI negative tests, end-to-end phase acceptance, measured impact and rollback.",
-  "expected_impact": "Reduce unnecessary custom infrastructure, unsupported design proposals and duplicated tests while preserving one governance workflow.",
+  "expected_impact": "Reduce unnecessary custom infrastructure, unsupported design proposals and duplicated tests while preserving one governance workflow. Optional Qwen3 4b proposal agent reuses official C# integration; absent model service returns an error; no autonomous code edits.",
   "rollback_risk": "Decision-contract/policy changes are Git-revertible before merge; this is not proof of rollback of external state.",
   "status": "EVIDENCE_REVIEWED"
 }
