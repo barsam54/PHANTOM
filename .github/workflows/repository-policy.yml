@@ -126,11 +126,21 @@ jobs:
           if negative.get("code") != "FALSE_ACCEPTANCE_OR_COVERAGE":
               sys.exit("FALSE_ACCEPTANCE_NEGATIVE_NOT_REJECTED")
           evidence = {"readback": first, "repeat_readback": second,
+                      "original_zip_digest_checked_by_this_python_step": False,
+                      "repacked_report_zip_sha256": sha(packed),
+                      "artifact_integrity_provider": "actions/download-artifact@v4",
+                      "original_artifact_sha256_not_equal_repacked_sha256": True,
                       "negative": negative, "downloaded_with": "actions/download-artifact@v4",
                       "scope": "same-run artifact content; no independent approval of GOV-P0",
                       "tests_reexecuted_by_repeat": False}
           (Path(os.environ["RUNNER_TEMP"]) / "evidence-readback.json").write_text(
               json.dumps(evidence, indent=2), encoding="utf-8")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("\\n### Original artifact readback (same run)\\n")
+              summary.write("- Content readback: **PASS**; false PASS negative test: **PASS**.\\n")
+              summary.write("- Repeated scoped evaluation: **PASS** without re-running tests.\\n")
+              summary.write("- Original archive digest: verified by the official download action, not this Python step.\\n")
+              summary.write("- Durable cross-run evidence reuse: **NOT YET PROVEN**; GOV-P0: **OPEN**.\\n")
           print("SAME_RUN_ARTIFACT_CONTENT_READBACK: PASS; SCOPED_REUSE: PASS; GOV-P0: OPEN")
           PY
       - name: Preserve independent artifact readback evidence
