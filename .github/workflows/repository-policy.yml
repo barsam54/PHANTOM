@@ -308,6 +308,42 @@ jobs:
               f.write("- Historical run/reuse: **CHECK_OK**. Current stage acceptance: **OPEN**.\n")
           print("CROSS_RUN_DOTNET_TEST_LOG_REUSE: PASS; GOVERNANCE: OPEN")
           PY
+      - name: Deny historical .NET reuse when current repository inputs differ
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 scripts/check_governance_reuse_eligibility.py \
+            --repo "$REPOSITORY" \
+            --historical-report "$RUNNER_TEMP/dotnet-evidence-readback.json" \
+            --current-sha "$(git rev-parse HEAD)" \
+            --criterion governance.dotnet_ci \
+            --output "$RUNNER_TEMP/dotnet-reuse-eligibility.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "dotnet-reuse-eligibility.json").read_text())
+          if report.get("status") == "REUSABLE":
+              assert report["reuse_allowed"] is True
+              assert report["current_stage_acceptance"] == "NOT_ASSESSED"
+          else:
+              assert report.get("code") == "REUSE_INPUT_TREE_CHANGED"
+              assert report["reuse_allowed"] is False
+          print("CURRENT_DOTNET_REUSE_ADMISSION:", report["status"], report["code"])
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as s:
+              s.write("\\n### Current revision evidence reuse admission\\n")
+              s.write("- Result: **" + report["status"] + "**; reason: " + report["code"] + "\\n")
+              s.write("- Reuse is allowed only for identical full Git trees and verified criterion. GOV-P0: OPEN.\\n")
+          PY
+      - name: Preserve reuse eligibility for audits
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-reuse-eligibility
+          path: ${{ runner.temp }}/dotnet-reuse-eligibility.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Preserve historical .NET evidence readback
         if: always()
         uses: actions/upload-artifact@v4
