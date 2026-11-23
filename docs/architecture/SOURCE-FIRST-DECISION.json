@@ -17,6 +17,7 @@
     "scripts/check_source_first_changes.py",
     "scripts/governance_inventory.py",
     "scripts/governance_phase0_probe.py",
+    "scripts/verify_official_sources.py",
     "src/Phantom.AgentFramework/GovernanceImpactAssessment.cs",
     "src/Phantom.AgentFramework/GovernanceLocalProposalAgent.cs",
     "src/Phantom.AgentFramework/GovernancePhaseWorkflow.cs",
@@ -28,6 +29,7 @@
     "tests/Phantom.Infrastructure.Tests/GovernancePhaseWorkflowTests.cs",
     "tests/policy/test_governance_inventory.py",
     "tests/policy/test_governance_phase0_probe.py",
+    "tests/policy/test_live_source_verification.py",
     "tests/policy/test_local_ollama.py",
     "tests/policy/test_repository_policy.py",
     "tests/policy/test_source_change_gate.py",
@@ -73,52 +75,81 @@
       "url": "https://learn.microsoft.com/en-us/agent-framework/workflows/workflows",
       "applies_to": "C# workflow/executor graph and runtime",
       "reviewed_version": "Official documentation checked 2026-11-23; pinned package 1.28.0 must be checked by build/tests",
-      "verification": "Existing FirstWorkflow and GOV-P0 .NET build/integration tests; no production worker claim."
+      "verification": "Existing FirstWorkflow and GOV-P0 .NET build/integration tests; no production worker claim.",
+      "expected_terms": [
+        "WorkflowBuilder",
+        "AddEdge"
+      ]
     },
     {
       "provider": "Microsoft",
       "url": "https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoints",
       "applies_to": "checkpoint/resume; not external side-effect rollback",
       "reviewed_version": "Official documentation checked 2026-11-23; package API compatibility pending runtime acceptance",
-      "verification": "Durable governance restart/resume not tested: OPEN."
+      "verification": "Durable governance restart/resume not tested: OPEN.",
+      "expected_terms": [
+        "Checkpoints",
+        "superstep"
+      ]
     },
     {
       "provider": "Microsoft",
       "url": "https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/tools-processes",
       "applies_to": "documented design decisions and reuse/review of tools",
       "reviewed_version": "Official guidance checked 2026-11-23; platform-agnostic practice only",
-      "verification": "Contract guard checks versioned decision structure, not truth of source."
+      "verification": "Contract guard checks versioned decision structure, not truth of source.",
+      "expected_terms": [
+        "industry-proven",
+        "tools"
+      ]
     },
     {
       "provider": "GitHub",
       "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax",
       "applies_to": "least-privilege permissions and CI trigger semantics",
       "reviewed_version": "GitHub official documentation checked 2026-11-23; platform behavior may evolve",
-      "verification": "Repository policy workflow tests current PR; branch protection not proved."
+      "verification": "Repository policy workflow tests current PR; branch protection not proved.",
+      "expected_terms": [
+        "workflow",
+        "permissions"
+      ]
     },
     {
       "provider": "GitHub",
       "url": "https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks",
       "applies_to": "CI passing does not necessarily satisfy or enforce merge requirements",
       "reviewed_version": "GitHub official documentation checked 2026-11-23",
-      "verification": "Current private main has no demonstrated effective enforced required check: OPEN."
+      "verification": "Current private main has no demonstrated effective enforced required check: OPEN.",
+      "expected_terms": [
+        "required status check",
+        "protected"
+      ]
     },
     {
       "provider": "Microsoft",
       "url": "https://learn.microsoft.com/en-us/agent-framework/agents/providers/ollama",
       "applies_to": "C# OllamaApiClient.AsAIAgent usage within Microsoft Agent Framework",
       "reviewed_version": "Published provider example reviewed 2026-11-23; OllamaSharp pinned 5.5.2 and Microsoft Agent Framework pinned 1.28.0",
-      "verification": "CI Build and MSTest and CLI --check-profile only; actual local inference pending."
+      "verification": "The CURRENT official C# example uses Microsoft.Extensions.AI.Ollama / OllamaChatClient, whereas PHANTOM currently uses OllamaSharp. .NET build tests only prove its pinned integration compiles. Provider alignment requires separate review; do not claim OllamaSharp is the documented current sample.",
+      "expected_terms": [
+        "OllamaChatClient",
+        "AsAIAgent"
+      ],
+      "source_alignment": "PARTIAL_MISMATCH_REVIEW_REQUIRED"
     },
     {
       "provider": "Ollama",
       "url": "https://docs.ollama.com/api/chat",
       "applies_to": "Local model inference endpoint and optional response settings",
       "reviewed_version": "Official Ollama API reference checked 2026-11-23",
-      "verification": "No host-inference claim until explicit user-host smoke result."
+      "verification": "No host-inference claim until explicit user-host smoke result.",
+      "expected_terms": [
+        "Generate a chat message",
+        "model"
+      ]
     }
   ],
-  "evaluation_method": "Before implementation, compare official supported APIs and pinned-version builds; after implementation verify CI negative tests, end-to-end phase acceptance, measured impact and rollback. PR-scoped source-first enforcement compares every changed path from immutable base SHA to the review record. Required status checks must be configured separately to block merges.",
+  "evaluation_method": "Before implementation, compare official supported APIs and pinned-version builds; after implementation verify CI negative tests, end-to-end phase acceptance, measured impact and rollback. PR-scoped source-first enforcement compares every changed path from immutable base SHA to the review record. Required status checks must be configured separately to block merges. CI fetches all declared official documents live and checks source-specific text claims; this is not independent verification of interpretation or pinned NuGet API.",
   "expected_impact": "Reduce unnecessary custom infrastructure, unsupported design proposals and duplicated tests while preserving one governance workflow. Optional Qwen3 4b proposal agent reuses official C# integration; absent model service returns an error; no autonomous code edits.",
   "rollback_risk": "Decision-contract/policy changes are Git-revertible before merge; this is not proof of rollback of external state.",
   "status": "EVIDENCE_REVIEWED"
