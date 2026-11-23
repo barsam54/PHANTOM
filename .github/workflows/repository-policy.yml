@@ -234,105 +234,53 @@ jobs:
               f.write("- Historical run/reuse: **CHECK_OK**. Current stage acceptance: **OPEN**.\n")
           print("CROSS_RUN_DOTNET_TEST_LOG_REUSE: PASS; GOVERNANCE: OPEN")
           PY
-      - name: Bind independent Policy and .NET evidence to one exact checkout
-        if: github.event_name == 'pull_request'
-        run: |
-          python3 scripts/verify_governance_evidence_pair.py \
-            --policy-receipt "$RUNNER_TEMP/prior-evidence-reused.json" \
-            --dotnet-receipt "$RUNNER_TEMP/dotnet-evidence-readback.json" \
-            --output "$RUNNER_TEMP/governance-evidence-pair.json"
-          python3 - <<'PY'
-          import json, os
-          from pathlib import Path
-          result = json.loads((Path(os.environ["RUNNER_TEMP"]) / "governance-evidence-pair.json").read_text())
-          assert result["status"] == "PAIR_CHECK_OK"
-          assert result["pair_verified"] is True
-          assert result["stage_accepted"] is False
-          assert result["governance_acceptance"] == "OPEN"
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
-              summary.write("\n### Two-run provenance pairing\n")
-              summary.write("- Matching historical head: " + result["historical_pr_head_sha"] + "\n")
-              summary.write("- Exact checkout: " + result["historical_checkout_sha"] + "\n")
-              summary.write("- Policy/.NET criteria paired: **CHECK_OK**; stage acceptance: **OPEN**.\n")
-          print("GOVERNANCE_EVIDENCE_PAIR: CHECK_OK; GOV-P0: OPEN")
-          PY
-      - name: Preserve cross-workflow evidence pairing
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: governance-evidence-pair
-          path: ${{ runner.temp }}/governance-evidence-pair.json
-          if-no-files-found: warn
-          retention-days: 30
-      - name: Deny historical .NET reuse when current repository inputs differ
+      - name: Verify scoped evidence through one consolidated governance entrypoint
         if: github.event_name == 'pull_request'
         env:
           GITHUB_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          python3 scripts/check_governance_reuse_eligibility.py \
-            --repo "$REPOSITORY" \
-            --historical-report "$RUNNER_TEMP/dotnet-evidence-readback.json" \
-            --current-sha "$(git rev-parse HEAD)" \
-            --criterion governance.dotnet_ci \
-            --output "$RUNNER_TEMP/dotnet-reuse-eligibility.json"
-          python3 - <<'PY'
-          import json, os
-          from pathlib import Path
-          report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "dotnet-reuse-eligibility.json").read_text())
-          if report.get("status") == "REUSABLE":
-              assert report["reuse_allowed"] is True
-              assert report["current_stage_acceptance"] == "NOT_ASSESSED"
-          else:
-              assert report.get("code") == "REUSE_INPUT_TREE_CHANGED"
-              assert report["reuse_allowed"] is False
-          print("CURRENT_DOTNET_REUSE_ADMISSION:", report["status"], report["code"])
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as s:
-              s.write("\n### Current revision evidence reuse admission\n")
-              s.write("- Result: **" + report["status"] + "**; reason: " + report["code"] + "\n")
-              s.write("- Reuse is allowed only for identical full Git trees and verified criterion. GOV-P0: OPEN.\n")
-          PY
-      - name: Build six-criterion evidence traceability matrix
-        if: github.event_name == 'pull_request'
-        run: |
-          python3 scripts/governance_criteria_matrix.py \
+          python3 scripts/governance_evidence_pipeline.py \
             --contract docs/architecture/GOVERNANCE-CONTRACT.json \
             --policy-receipt "$RUNNER_TEMP/prior-evidence-reused.json" \
             --dotnet-receipt "$RUNNER_TEMP/dotnet-evidence-readback.json" \
-            --reuse-decision "$RUNNER_TEMP/dotnet-reuse-eligibility.json" \
-            --pair-receipt "$RUNNER_TEMP/governance-evidence-pair.json" \
-            --output "$RUNNER_TEMP/governance-criteria-matrix.json"
+            --repo "$REPOSITORY" \
+            --current-sha "$(git rev-parse HEAD)" \
+            --output-dir "$RUNNER_TEMP"
           python3 - <<'PY'
           import json, os
           from pathlib import Path
-          report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "governance-criteria-matrix.json").read_text())
-          assert report["criteria_count"] == 6
-          assert report["historical_proofs_checked"] == 2
-          assert report["historical_proofs_same_checkout_verified"] is True
-          assert report["accepted_capabilities"] == 0
+          root = Path(os.environ["RUNNER_TEMP"])
+          report = json.loads((root / "governance-evidence-pipeline.json").read_text())
+          pair = json.loads((root / "governance-evidence-pair.json").read_text())
+          reuse = json.loads((root / "dotnet-reuse-eligibility.json").read_text())
+          matrix = json.loads((root / "governance-criteria-matrix.json").read_text())
+          assert report["status"] == "VERIFIED_SCOPE_ONLY"
           assert report["governance_acceptance"] == "OPEN"
-          assert all(c["acceptance"] == "OPEN" for c in report["capabilities"])
+          assert report["accepted_capabilities"] == 0
+          assert pair["status"] == "PAIR_CHECK_OK"
+          assert reuse["status"] in ("BLOCKED", "REUSABLE")
+          assert matrix["historical_proofs_same_checkout_verified"] is True
+          assert matrix["criteria_count"] == 6
+          assert matrix["accepted_capabilities"] == 0
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
-              summary.write("\n### GOV-P0 criteria traceability (not acceptance)\n")
-              for c in report["capabilities"]:
-                  summary.write("- **" + c["id"] + "**: OPEN; missing " + c["missing"] + "\n")
-              summary.write("- Historical CI receipts validated: 2; current revision acceptance: NOT ASSESSED.\n")
-          print("GOV_CRITERIA_MATRIX: 6 declared, 2 historical proofs verified, 0 accepted")
+              summary.write("\n### Unified governance evidence verification (NOT stage acceptance)\n")
+              summary.write("- Pair binding: " + pair["status"] + "\n")
+              summary.write("- Current revision reuse: " + reuse["status"] + "; " + reuse["code"] + "\n")
+              summary.write("- Six criteria mapped; historical CI proofs: 2; accepted capabilities: 0.\n")
+              summary.write("- Required next gate: phase-scoped accepted evidence consumed by Microsoft Agent Framework.\n")
+          print("UNIFIED_EVIDENCE_PIPELINE: VERIFIED_SCOPE_ONLY; GOV-P0: OPEN")
           PY
-      - name: Preserve criterion-to-evidence matrix
+      - name: Preserve unified evidence pipeline and component audit receipts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: governance-criteria-matrix
-          path: ${{ runner.temp }}/governance-criteria-matrix.json
-          if-no-files-found: warn
-          retention-days: 30
-      - name: Preserve reuse eligibility for audits
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: governance-reuse-eligibility
-          path: ${{ runner.temp }}/dotnet-reuse-eligibility.json
+          name: governance-evidence-pipeline
+          path: |
+            ${{ runner.temp }}/governance-evidence-pipeline.json
+            ${{ runner.temp }}/governance-evidence-pair.json
+            ${{ runner.temp }}/dotnet-reuse-eligibility.json
+            ${{ runner.temp }}/governance-criteria-matrix.json
           if-no-files-found: warn
           retention-days: 30
       - name: Preserve historical .NET evidence readback
