@@ -14,8 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout
+      - name: Checkout with source-first base history
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Source-first admission before restore, build, tests or model use
+        if: github.event_name == 'pull_request'
+        env:
+          SOURCE_GATE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 scripts/check_source_first_changes.py --base-sha "$SOURCE_GATE_BASE_SHA"
       - name: Install .NET 10
         uses: actions/setup-dotnet@v4
         with:
