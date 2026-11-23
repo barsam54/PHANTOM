@@ -159,7 +159,8 @@
     ],
     "official_hosts": [
       "learn.microsoft.com",
-      "docs.github.com"
+      "docs.github.com",
+      "docs.ollama.com"
     ],
     "no_invention_without_evidence": true,
     "accepted_decision_statuses": [
