@@ -327,10 +327,10 @@ public static class GovernancePhaseWorkflow
             ".github/workflows/dotnet-build-test.yml", "build_and_tests");
 
     private static Report Evidence(Report state) =>
-        Add(state, "evidence", "CHECK_OK", "GOV_EVIDENCE_DISCOVERY_ONLY",
-            "Historical evidence directory may be present; provenance and scope are not validated.",
-            "Bind experiment evidence and test outcomes to the same SHA and acceptance criteria.",
-            "docs/evidence/", "evidence");
+        Add(state, "evidence", "BLOCKED", "GOV_EVIDENCE_INDEPENDENT_VERIFICATION_MISSING",
+            "The read-only phase discovered evidence but did not verify its test run, provenance, integrity, criterion coverage or input identity.",
+            "Run the independent provider-backed criterion and artifact validators for this exact phase and immutable source revision; bind the validated receipts to this workflow before acceptance.",
+            "docs/architecture/GOVERNANCE-CONTRACT.json", "evidence");
 
     private static Report Acceptance(Report state) =>
         Add(state, "acceptance", "BLOCKED", "GOV_ACCEPTANCE_UNPROVEN",
