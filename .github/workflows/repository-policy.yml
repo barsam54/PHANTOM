@@ -20,6 +20,9 @@ jobs:
           fetch-depth: 0
       - name: Run repository governance policy unit and negative tests
         run: python3 -m unittest discover -s tests/policy -p 'test_*.py' -v
+      - name: Live-verify official sources and declared technical claims
+        if: github.event_name == 'pull_request'
+        run: python3 scripts/verify_official_sources.py --json-out "$RUNNER_TEMP/source-audit.json"
       - name: Enforce source-first review for every changed PR file
         if: github.event_name == 'pull_request'
         env:
