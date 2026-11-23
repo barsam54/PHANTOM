@@ -13,6 +13,30 @@ try
         return 0;
     }
 
+    if (args.Length == 2 && args[0] == "--evidence-report")
+    {
+        // An externally generated report is untrusted until its identifiers are
+        // independently compared to the checked-out source by GovEvidence.
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(args[1]));
+        JsonElement input = document.RootElement;
+        string Field(string key) => input.GetProperty(key).GetString()
+            ?? throw new InvalidOperationException("GOV_EVIDENCE_FIELD_MISSING: " + key);
+        int Number(string key) => input.GetProperty(key).GetInt32();
+        bool Flag(string key) => input.GetProperty(key).GetBoolean();
+        var evidence = new GovernancePhaseWorkflow.EvidenceSubmission(
+            Field("schema_version"), Field("status"), Field("source_sha"),
+            Field("contract_sha256"), Field("baseline_sha256"), Field("contract_gate"),
+            Field("reuse_decision"), Number("criteria_discovered"),
+            Number("historical_ci_criteria_verified"), Number("current_phase_criteria_verified"),
+            Flag("phase_evidence_verification_completed"), Field("governance_acceptance"));
+        string revision = GetCleanRepositoryRevision(root);
+        var report = await GovernancePhaseWorkflow.RunAsync(
+            root, revision, externalEvidence: evidence);
+        Console.WriteLine(JsonSerializer.Serialize(report,
+            new JsonSerializerOptions { WriteIndented = true }));
+        return report.Steps[6].Status == "SCOPED_ONLY" && !report.Accepted ? 0 : 2;
+    }
+
     if (args.Length == 2 &&
         args[0] is "--checkpoint-capture" or "--checkpoint-resume")
     {
