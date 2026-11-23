@@ -8,13 +8,380 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   policy:
     name: Validate repository layout and explain violations
     runs-on: ubuntu-latest
     steps:
-      - name: Check out source
+      - name: Check out source with PR base history
         uses: actions/checkout@v4
-      - name: Check tracked files against baseline
+        with:
+          fetch-depth: 0
+      - name: Run repository governance policy unit and negative tests
+        run: python3 -m unittest discover -s tests/policy -p 'test_*.py' -v
+      - name: Live-verify official sources and declared technical claims
+        if: github.event_name == 'pull_request'
+        run: python3 scripts/verify_official_sources.py --json-out "$RUNNER_TEMP/source-audit.json"
+      - name: Record live source validation in GitHub Actions summary
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/source-audit.json"; then
+            echo '### Live official source verification (text assertions only)' >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat "$RUNNER_TEMP/source-audit.json" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Enforce source-first review for every changed PR file
+        if: github.event_name == 'pull_request'
+        env:
+          SOURCE_GATE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 scripts/check_source_first_changes.py --base-sha "$SOURCE_GATE_BASE_SHA"
+      - name: Check tracked files and P0 governance contract
         run: python3 scripts/check_repository_policy.py
+      - name: Generate read-only governance inventory and CI dashboard
+        if: always()
+        run: |
+          python3 scripts/governance_inventory.py --json-out "$RUNNER_TEMP/governance-inventory.json" --markdown-out "$RUNNER_TEMP/governance-summary.md"
+          cat "$RUNNER_TEMP/governance-summary.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Probe all ten GOV-P0 phase steps without false acceptance
+        if: always()
+        run: |
+          python3 scripts/governance_phase0_probe.py --json-out "$RUNNER_TEMP/governance-phase0-ten-steps.json" --summary-out "$RUNNER_TEMP/governance-phase0-ten-steps.md"
+          cat "$RUNNER_TEMP/governance-phase0-ten-steps.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Render read-only governance HTML dashboard and SVG progress chart
+        if: always()
+        run: |
+          if test -s "$RUNNER_TEMP/governance-inventory.json" && test -s "$RUNNER_TEMP/governance-phase0-ten-steps.json"; then
+            python3 scripts/render_governance_dashboard.py \
+              --inventory "$RUNNER_TEMP/governance-inventory.json" \
+              --probe "$RUNNER_TEMP/governance-phase0-ten-steps.json" \
+              --output-dir "$RUNNER_TEMP/governance-dashboard"
+            cat "$RUNNER_TEMP/governance-dashboard/dashboard.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '### Dashboard BLOCKED: required evidence snapshots missing' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+      - name: Preserve governance inventory for audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-inventory
+          path: |
+            ${{ runner.temp }}/source-audit.json
+            ${{ runner.temp }}/governance-inventory.json
+            ${{ runner.temp }}/governance-summary.md
+            ${{ runner.temp }}/governance-phase0-ten-steps.json
+            ${{ runner.temp }}/governance-phase0-ten-steps.md
+            ${{ runner.temp }}/governance-dashboard/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Select previously successful independent CI evidence
+        id: prior_evidence
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          CURRENT_RUN_ID: ${{ github.run_id }}
+          CURRENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys, urllib.request
+          repo = os.environ["REPOSITORY"]
+          url = f"https://api.github.com/repos/{repo}/actions/workflows/repository-policy.yml/runs?event=pull_request&status=success&per_page=100"
+          req = urllib.request.Request(url, headers={
+              "Accept": "application/vnd.github+json",
+              "Authorization": "Bearer " + os.environ["GITHUB_TOKEN"],
+              "X-GitHub-Api-Version": "2022-11-28"
+          })
+          with urllib.request.urlopen(req, timeout=30) as f:
+              runs = json.load(f)["workflow_runs"]
+          eligible = [run for run in runs
+              if run.get("conclusion") == "success"
+              and run.get("status") == "completed"
+              and run.get("event") == "pull_request"
+              and run.get("id") != int(os.environ["CURRENT_RUN_ID"])
+              and run.get("head_sha") != os.environ["CURRENT_HEAD_SHA"]
+              and (run.get("head_repository") or {}).get("full_name") == repo]
+          if not eligible:
+              sys.exit("NO_PREVIOUS_TRUSTED_SUCCESSFUL_PR_RUN")
+          headers = {
+              "Accept": "application/vnd.github+json",
+              "Authorization": "Bearer " + os.environ["GITHUB_TOKEN"],
+              "X-GitHub-Api-Version": "2022-11-28"}
+          def get(url):
+              request = urllib.request.Request(url, headers=headers)
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  return json.load(response)
+          root = f"https://api.github.com/repos/{repo}"
+          dotnet_runs = get(root + "/actions/workflows/dotnet-build-test.yml/runs?event=pull_request&status=success&per_page=100")["workflow_runs"]
+          prior = None
+          for candidate in eligible:
+              matching_dotnet = [run for run in dotnet_runs
+                  if run.get("head_sha") == candidate["head_sha"]
+                  and run.get("status") == "completed"
+                  and run.get("conclusion") == "success"
+                  and (run.get("head_repository") or {}).get("full_name") == repo]
+              for dotnet in matching_dotnet:
+                  artifacts = get(root + "/actions/runs/" + str(dotnet["id"]) + "/artifacts?per_page=100")["artifacts"]
+                  receipts = [artifact for artifact in artifacts
+                      if artifact.get("name") == "governance-dotnet-test-evidence"
+                      and artifact.get("expired") is False]
+                  if len(receipts) == 1:
+                      prior = candidate
+                      break
+              if prior is not None:
+                  break
+          if prior is None:
+              sys.exit("NO_MATCHED_HISTORICAL_POLICY_DOTNET_EVIDENCE_PAIR")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write("run_id=" + str(prior["id"]) + "\n")
+              output.write("head_sha=" + prior["head_sha"] + "\n")
+          print("PRIOR_EVIDENCE_SELECTED:", prior["id"], prior["head_sha"])
+          PY
+      - name: Download evidence from an independent earlier CI run
+        if: github.event_name == 'pull_request'
+        uses: actions/download-artifact@v4
+        with:
+          name: governance-inventory
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.prior_evidence.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/evidence-from-prior-run
+      - name: Verify independent earlier run evidence twice without retesting
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PRIOR_RUN: ${{ steps.prior_evidence.outputs.run_id }}
+          PRIOR_SHA: ${{ steps.prior_evidence.outputs.head_sha }}
+        run: |
+          python3 scripts/verify_prior_governance_evidence.py \
+            --repo "$REPOSITORY" --run-id "$PRIOR_RUN" --head-sha "$PRIOR_SHA" \
+            --dir "$RUNNER_TEMP/evidence-from-prior-run" --output "$RUNNER_TEMP/prior-evidence-first.json"
+          python3 scripts/verify_prior_governance_evidence.py \
+            --repo "$REPOSITORY" --run-id "$PRIOR_RUN" --head-sha "$PRIOR_SHA" \
+            --dir "$RUNNER_TEMP/evidence-from-prior-run" --output "$RUNNER_TEMP/prior-evidence-reused.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"])
+          first = json.loads((root / "prior-evidence-first.json").read_text())
+          reused = json.loads((root / "prior-evidence-reused.json").read_text())
+          assert first == reused
+          assert reused["status"] == "CHECK_OK"
+          assert reused["content_readback_verified"] is True
+          assert reused["reused_existing_run"] is True
+          assert reused["new_build_or_test_invoked_by_verifier"] is False
+          assert reused["current_revision_acceptance"] == "NOT_ASSESSED"
+          assert reused["governance_acceptance"] == "OPEN"
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as s:
+              s.write("\n### Historical independent-run evidence\n")
+              s.write("- Earlier run: " + str(reused["historical_run_id"]) + "\n")
+              s.write("- Original head SHA: " + reused["historical_pr_head_sha"] + "\n")
+              s.write("- Verified checkout SHA: " + reused["historical_checkout_sha"] + "\n")
+              s.write("- Readback and reuse without re-running tests: **PASS**.\n")
+              s.write("- Historical artifact transport: official download action.\n")
+              s.write("- Current revision acceptance: **NOT ASSESSED**; GOV-P0: **OPEN**.\n")
+          print("CROSS_RUN_PROVENANCE_CONTENT_AND_REUSE: PASS; GOV-P0: OPEN")
+          PY
+      - name: Select verified historical .NET test artifact
+        id: prior_dotnet
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          CURRENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PAIRED_POLICY_HEAD_SHA: ${{ steps.prior_evidence.outputs.head_sha }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys, urllib.request
+          api = "https://api.github.com/repos/" + os.environ["REPOSITORY"]
+          headers = {"Accept": "application/vnd.github+json",
+                     "Authorization": "Bearer " + os.environ["GITHUB_TOKEN"],
+                     "X-GitHub-Api-Version": "2022-11-28"}
+          def get(url):
+              with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30) as f:
+                  return json.load(f)
+          runs = get(api + "/actions/workflows/dotnet-build-test.yml/runs?event=pull_request&status=success&per_page=100")["workflow_runs"]
+          selected = None
+          for run in runs:
+              if (run.get("conclusion") != "success"
+                  or run.get("head_sha") != os.environ["PAIRED_POLICY_HEAD_SHA"]
+                  or run.get("head_sha") == os.environ["CURRENT_HEAD_SHA"]
+                  or (run.get("head_repository") or {}).get("full_name") != os.environ["REPOSITORY"]):
+                  continue
+              artifacts = get(api + "/actions/runs/" + str(run["id"]) + "/artifacts?per_page=100")["artifacts"]
+              valid = [a for a in artifacts if a["name"] == "governance-dotnet-test-evidence" and not a["expired"]]
+              if len(valid) == 1:
+                  selected = run
+                  break
+          if selected is None:
+              sys.exit("NO_PRIOR_DOTNET_EVIDENCE_ARTIFACT")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write("run_id=" + str(selected["id"]) + "\n")
+              f.write("head_sha=" + selected["head_sha"] + "\n")
+          print("PRIOR_DOTNET_RUN_SELECTED", selected["id"], selected["head_sha"])
+          PY
+      - name: Download historical .NET evidence from independent run
+        if: github.event_name == 'pull_request'
+        uses: actions/download-artifact@v4
+        with:
+          name: governance-dotnet-test-evidence
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.prior_dotnet.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/historical-dotnet-evidence
+      - name: Validate historical .NET test output without repeating test execution
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PRIOR_DOTNET_ID: ${{ steps.prior_dotnet.outputs.run_id }}
+          PRIOR_DOTNET_SHA: ${{ steps.prior_dotnet.outputs.head_sha }}
+        run: |
+          python3 scripts/verify_prior_dotnet_evidence.py \
+            --repo "$REPOSITORY" --run-id "$PRIOR_DOTNET_ID" --head-sha "$PRIOR_DOTNET_SHA" \
+            --dir "$RUNNER_TEMP/historical-dotnet-evidence" --output "$RUNNER_TEMP/dotnet-evidence-readback.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          d = json.loads((Path(os.environ["RUNNER_TEMP"]) / "dotnet-evidence-readback.json").read_text())
+          assert d["status"] == "CHECK_OK"
+          assert d["criterion"] == "governance.dotnet_ci"
+          assert d["reused_existing_run"] is True
+          assert d["new_build_or_test_invoked_by_verifier"] is False
+          assert d["current_revision_acceptance"] == "NOT_ASSESSED"
+          assert d["governance_acceptance"] == "OPEN"
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write("\n### Independent prior .NET evidence\n")
+              f.write("- Prior run: " + str(d["historical_run_id"]) + "\n")
+              f.write("- Pinned test log: " + d["test_log_sha256"] + "\n")
+              f.write("- Historical run/reuse: **CHECK_OK**. Current stage acceptance: **OPEN**.\n")
+          print("CROSS_RUN_DOTNET_TEST_LOG_REUSE: PASS; GOVERNANCE: OPEN")
+          PY
+      - name: Verify scoped evidence through one consolidated governance entrypoint
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 scripts/governance_evidence_pipeline.py \
+            --contract docs/architecture/GOVERNANCE-CONTRACT.json \
+            --policy-receipt "$RUNNER_TEMP/prior-evidence-reused.json" \
+            --dotnet-receipt "$RUNNER_TEMP/dotnet-evidence-readback.json" \
+            --repo "$REPOSITORY" \
+            --current-sha "$(git rev-parse HEAD)" \
+            --output-dir "$RUNNER_TEMP"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"])
+          report = json.loads((root / "governance-evidence-pipeline.json").read_text())
+          pair = json.loads((root / "governance-evidence-pair.json").read_text())
+          reuse = json.loads((root / "dotnet-reuse-eligibility.json").read_text())
+          matrix = json.loads((root / "governance-criteria-matrix.json").read_text())
+          assert report["status"] == "VERIFIED_SCOPE_ONLY"
+          assert report["governance_acceptance"] == "OPEN"
+          assert report["accepted_capabilities"] == 0
+          assert pair["status"] == "PAIR_CHECK_OK"
+          assert reuse["status"] in ("BLOCKED", "REUSABLE")
+          assert matrix["historical_proofs_same_checkout_verified"] is True
+          assert matrix["criteria_count"] == 6
+          assert matrix["accepted_capabilities"] == 0
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("\n### Unified governance evidence verification (NOT stage acceptance)\n")
+              summary.write("- Pair binding: " + pair["status"] + "\n")
+              summary.write("- Current revision reuse: " + reuse["status"] + "; " + reuse["code"] + "\n")
+              summary.write("- Six criteria mapped; historical CI proofs: 2; accepted capabilities: 0.\n")
+              summary.write("- Required next gate: phase-scoped accepted evidence consumed by Microsoft Agent Framework.\n")
+          print("UNIFIED_EVIDENCE_PIPELINE: VERIFIED_SCOPE_ONLY; GOV-P0: OPEN")
+          PY
+      - name: Install .NET for real Microsoft workflow evidence handoff
+        if: github.event_name == 'pull_request'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.115'
+      - name: Consume current CI evidence in Microsoft Agent Framework
+        if: github.event_name == 'pull_request'
+        run: |
+          dotnet build src/Phantom.LocalGovernanceCli/Phantom.LocalGovernanceCli.csproj --configuration Release
+          dotnet run --project src/Phantom.LocalGovernanceCli/Phantom.LocalGovernanceCli.csproj \
+            --configuration Release --no-build -- \
+            --evidence-report "$RUNNER_TEMP/governance-evidence-pipeline.json" > "$RUNNER_TEMP/governance-framework-evidence.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"])
+          report = json.loads((root / "governance-framework-evidence.json").read_text())
+          assert report["Acceptance"] == "OPEN"
+          assert report["Steps"][6]["Status"] == "SCOPED_ONLY"
+          assert report["Steps"][6]["Code"] == "GOV_HISTORICAL_CI_RECEIPT_CONSUMED"
+          assert report["Steps"][7]["Status"] == "BLOCKED"
+          print("MICROSOFT_EVIDENCE_HANDOFF: SCOPED_ONLY; GOV-P0: OPEN")
+          PY
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path(os.environ["RUNNER_TEMP"]) / "governance-evidence-pipeline.json"
+          report = json.loads(path.read_text())
+          report["source_sha"] = "0" * 40
+          (path.parent / "tampered-governance-evidence.json").write_text(json.dumps(report))
+          PY
+          if dotnet run --project src/Phantom.LocalGovernanceCli/Phantom.LocalGovernanceCli.csproj \
+            --configuration Release --no-build -- \
+            --evidence-report "$RUNNER_TEMP/tampered-governance-evidence.json" > "$RUNNER_TEMP/governance-framework-rejected.json"; then
+            echo "ERROR: tampered SHA was accepted" >&2
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"])
+          rejected = json.loads((root / "governance-framework-rejected.json").read_text())
+          assert rejected["Steps"][6]["Code"] == "GOV_EVIDENCE_BINDING_INVALID"
+          assert rejected["Acceptance"] == "OPEN"
+          print("MICROSOFT_EVIDENCE_NEGATIVE: PASS; FORGED_SHA_BLOCKED")
+          PY
+      - name: Preserve Microsoft workflow evidence handoff results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-framework-evidence-handoff
+          path: |
+            ${{ runner.temp }}/governance-framework-evidence.json
+            ${{ runner.temp }}/governance-framework-rejected.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Preserve unified evidence pipeline and component audit receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-evidence-pipeline
+          path: |
+            ${{ runner.temp }}/governance-evidence-pipeline.json
+            ${{ runner.temp }}/governance-evidence-pair.json
+            ${{ runner.temp }}/dotnet-reuse-eligibility.json
+            ${{ runner.temp }}/governance-criteria-matrix.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Preserve historical .NET evidence readback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-cross-run-dotnet-evidence
+          path: ${{ runner.temp }}/dotnet-evidence-readback.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Persist independent cross-run evidence report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-cross-run-reuse
+          path: |
+            ${{ runner.temp }}/prior-evidence-first.json
+            ${{ runner.temp }}/prior-evidence-reused.json
+          if-no-files-found: warn
+          retention-days: 30

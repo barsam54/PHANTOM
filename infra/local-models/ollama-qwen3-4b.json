@@ -1,0 +1,32 @@
+{
+  "schema_version": "phantom.local-model.v1",
+  "provider": "ollama",
+  "mode": "optional_local_only",
+  "enabled_by_default": false,
+  "model": "qwen3:4b",
+  "api_base": "http://127.0.0.1:11434",
+  "model_artifact_in_git": false,
+  "host_installation_evidence": {
+    "source": "user-supplied terminal output",
+    "result": "ollama pull qwen3:4b completed with success",
+    "runtime_health_verified": false,
+    "local_model_digest_verified": false
+  },
+  "uses": [
+    "optional development-worker candidate after separate authorization and evaluation"
+  ],
+  "prohibited_assumptions": [
+    "not automatically an authorized agent",
+    "not a second workflow orchestrator",
+    "not proof that local server is running",
+    "not proof of production-quality inference",
+    "do not push weights, model caches, prompts, secrets or local datasets into Git"
+  ],
+  "official_sources": [
+    "https://docs.ollama.com/api/introduction",
+    "https://docs.ollama.com/api/tags",
+    "https://docs.ollama.com/api/chat",
+    "https://ollama.com/library/qwen3:4b"
+  ],
+  "acceptance_status": "OPEN"
+}

@@ -1,0 +1,178 @@
+{
+  "schema_version": "phantom.governance.source-decision.v1",
+  "decision_id": "GOV-P0-SOURCE-FIRST-001",
+  "scope": [
+    ".github/workflows/dotnet-build-test.yml",
+    ".github/workflows/repository-policy.yml",
+    ".gitignore",
+    "docs/OLLAMA-LOCAL-MODEL.md",
+    "docs/architecture/BASELINE.md",
+    "docs/architecture/GOVERNANCE-CONTRACT.json",
+    "docs/architecture/GOVERNANCE-CONTROLLER.md",
+    "docs/architecture/GOVERNANCE-DASHBOARD.md",
+    "docs/architecture/SOURCE-FIRST-DECISION.json",
+    "docs/evidence/2026-11-23-governance-ten-step-workflow-ci.md",
+    "docs/evidence/2026-11-23-host-ollama-inference-removal.md",
+    "docs/evidence/2026-11-23-required-check-negative-pr.md",
+    "docs/evidence/2026-11-23-source-first-ruleset-readback.md",
+    "infra/local-models/ollama-qwen3-4b.json",
+    "scripts/check_governance_reuse_eligibility.py",
+    "scripts/check_local_ollama.py",
+    "scripts/check_repository_policy.py",
+    "scripts/check_source_first_changes.py",
+    "scripts/governance_criteria_matrix.py",
+    "scripts/governance_evidence_pipeline.py",
+    "scripts/governance_inventory.py",
+    "scripts/governance_phase0_probe.py",
+    "scripts/render_governance_dashboard.py",
+    "scripts/validate_governance_evidence.py",
+    "scripts/verify_governance_artifact.py",
+    "scripts/verify_governance_evidence_pair.py",
+    "scripts/verify_official_sources.py",
+    "scripts/verify_prior_dotnet_evidence.py",
+    "scripts/verify_prior_governance_evidence.py",
+    "src/Phantom.AgentFramework/GovernanceImpactAssessment.cs",
+    "src/Phantom.AgentFramework/GovernanceLocalProposalAgent.cs",
+    "src/Phantom.AgentFramework/GovernancePhaseWorkflow.cs",
+    "src/Phantom.AgentFramework/Phantom.AgentFramework.csproj",
+    "src/Phantom.LocalGovernanceCli/Phantom.LocalGovernanceCli.csproj",
+    "src/Phantom.LocalGovernanceCli/Program.cs",
+    "tests/Phantom.Infrastructure.Tests/GovernanceImpactAssessmentTests.cs",
+    "tests/Phantom.Infrastructure.Tests/GovernanceLocalProposalAgentTests.cs",
+    "tests/Phantom.Infrastructure.Tests/GovernancePhaseWorkflowTests.cs",
+    "tests/policy/test_governance_criteria_matrix.py",
+    "tests/policy/test_governance_dashboard.py",
+    "tests/policy/test_governance_evidence.py",
+    "tests/policy/test_governance_evidence_pair.py",
+    "tests/policy/test_governance_evidence_pipeline.py",
+    "tests/policy/test_governance_inventory.py",
+    "tests/policy/test_governance_phase0_probe.py",
+    "tests/policy/test_governance_reuse_eligibility.py",
+    "tests/policy/test_live_source_verification.py",
+    "tests/policy/test_local_ollama.py",
+    "tests/policy/test_repository_policy.py",
+    "tests/policy/test_source_change_gate.py",
+    "tests/policy/test_source_first_policy.py",
+    "tests/policy/test_verify_governance_artifact.py",
+    "tests/policy/test_verify_prior_dotnet_evidence.py",
+    "tests/policy/test_verify_prior_governance_evidence.py"
+  ],
+  "problem": "The governance workflow contains inspection executors and previously allowed design decisions before validating existing vendor-supported options.",
+  "baseline_ref": "docs/architecture/BASELINE.md#12-p0--unified-development-governance-controller-proposed-implementation-contract-open",
+  "candidate_solutions": [
+    {
+      "id": "reuse_framework",
+      "kind": "REUSE",
+      "reference": "Microsoft Agent Framework C# workflows/executors/checkpoints",
+      "outcome": "PREFERRED",
+      "reason": "Already pinned Microsoft.Agents.AI.Workflows 1.28.0 and C# workflow tests run in CI."
+    },
+    {
+      "id": "reuse_github",
+      "kind": "REUSE",
+      "reference": "GitHub Actions workflow checks and artifacts",
+      "outcome": "PREFERRED",
+      "reason": "Reuse existing Actions policy and .NET jobs. Active main ruleset and blocked failed-check PR #2 observed; continue periodic drift validation."
+    },
+    {
+      "id": "custom_orchestration",
+      "kind": "NEW_IMPLEMENTATION",
+      "reference": "new standalone scheduling engine",
+      "outcome": "REJECTED",
+      "reason": "Duplicates official workflow orchestration and increases architecture/maintenance risk."
+    },
+    {
+      "id": "reuse_ollamasharp",
+      "kind": "REUSE",
+      "reference": "Microsoft Agent Framework Ollama provider + OllamaSharp 5.5.2",
+      "outcome": "PREFERRED_FOR_OPTIONAL_LOCAL_INFERENCE",
+      "reason": "PHANTOM's pinned C# integration compiles using OllamaSharp/OllamaApiClient.AsAIAgent and Microsoft.Extensions.AI. Alternate official provider examples differ by presentation/pivot; version-specific support remains inconclusive until independently evaluated."
+    }
+  ],
+  "chosen_option": "reuse_framework",
+  "why_existing_solution_is_insufficient": "Existing framework primitives orchestrate executors but PHANTOM has not implemented a bounded coding worker or independently verified external side-effect checkpoint/rollback. The GitHub required-check barrier has been configured and negatively observed for a failing non-draft PR; direct-push and attempted merge rejection are not exercised.",
+  "official_sources": [
+    {
+      "provider": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/agent-framework/workflows/workflows",
+      "applies_to": "C# workflow/executor graph and runtime",
+      "reviewed_version": "Official documentation checked 2026-11-23; pinned package 1.28.0 must be checked by build/tests",
+      "verification": "Existing FirstWorkflow and GOV-P0 .NET build/integration tests; no production worker claim.",
+      "expected_terms": [
+        "WorkflowBuilder",
+        "AddEdge"
+      ]
+    },
+    {
+      "provider": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoints",
+      "applies_to": "checkpoint/resume; not external side-effect rollback",
+      "reviewed_version": "Official documentation checked 2026-11-23; package API compatibility pending runtime acceptance",
+      "verification": "Durable governance restart/resume not tested: OPEN.",
+      "expected_terms": [
+        "Checkpoints",
+        "superstep"
+      ]
+    },
+    {
+      "provider": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/tools-processes",
+      "applies_to": "documented design decisions and reuse/review of tools",
+      "reviewed_version": "Official guidance checked 2026-11-23; platform-agnostic practice only",
+      "verification": "Contract guard checks versioned decision structure, not truth of source.",
+      "expected_terms": [
+        "industry-proven",
+        "tools"
+      ]
+    },
+    {
+      "provider": "GitHub",
+      "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax",
+      "applies_to": "least-privilege permissions and CI trigger semantics",
+      "reviewed_version": "GitHub official documentation checked 2026-11-23; platform behavior may evolve",
+      "verification": "Repository policy workflow tests current PR; branch protection not proved.",
+      "expected_terms": [
+        "workflow",
+        "permissions"
+      ]
+    },
+    {
+      "provider": "GitHub",
+      "url": "https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks",
+      "applies_to": "CI passing does not necessarily satisfy or enforce merge requirements",
+      "reviewed_version": "GitHub official documentation checked 2026-11-23",
+      "verification": "Observed active public main ruleset #27867625 requiring two trusted CI checks. Negative non-draft PR #2 with failed policy check reported mergeable_state=blocked and was closed unmerged. No actual merge API rejection or direct-push test; historical evidence only.",
+      "expected_terms": [
+        "required status check",
+        "protected"
+      ]
+    },
+    {
+      "provider": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/agent-framework/agents/providers/ollama",
+      "applies_to": "C# OllamaApiClient.AsAIAgent usage within Microsoft Agent Framework",
+      "reviewed_version": "Published provider example reviewed 2026-11-23; OllamaSharp pinned 5.5.2 and Microsoft Agent Framework pinned 1.28.0",
+      "verification": "Two official documentation presentations diverge: GitHub Actions live page returned OllamaChatClient/Native Ollama, while the Microsoft provider search result for C# references OllamaSharp/OllamaApiClient.AsAIAgent. Official source presentation may vary by locale/pivot/version. PHANTOM pinned Microsoft.Agents.AI 1.28.0 and OllamaSharp 5.5.2 compile and tests succeed; provider selection/official version alignment cannot be certified by page-term assertions. Host inference remains untested.",
+      "expected_terms": [
+        "OllamaChatClient",
+        "Native Ollama"
+      ],
+      "source_alignment": "INCONCLUSIVE_OFFICIAL_DOC_VERSION_OR_PIVOT_VARIANCE: do not conclude C# parity or mismatch from keyword presence alone. Compare docs for exact pinned versions; running local model and independent validation remain OPEN."
+    },
+    {
+      "provider": "Ollama",
+      "url": "https://docs.ollama.com/api/chat",
+      "applies_to": "Local model inference endpoint and optional response settings",
+      "reviewed_version": "Official Ollama API reference checked 2026-11-23",
+      "verification": "No host-inference claim until explicit user-host smoke result. User-host observed qwen3:4b CPU inference produced English reasoning instead of final Persian answer, then model removed. Evidence: docs/evidence/2026-11-23-host-ollama-inference-removal.md. CI does not verify local model inference.",
+      "expected_terms": [
+        "Generate a chat message",
+        "model"
+      ]
+    }
+  ],
+  "evaluation_method": "Before implementation, compare official supported APIs and pinned-version builds; after implementation verify CI negative tests, end-to-end phase acceptance, measured impact and rollback. PR-scoped source-first enforcement compares every changed path from immutable base SHA to the review record. Required status checks must be configured separately to block merges. CI fetches all declared official documents live and checks source-specific text claims; this is not independent verification of interpretation or pinned NuGet API. GitHub REST readback in versioned evidence observes effective ruleset configuration but does not substitute for a negative merge test. Non-draft PR #2 on protected main intentionally failed the required Repository Policy Guard; live GitHub mergeable_state=blocked observed, then PR closed without merge; this does not establish rejected direct push or attempted merge API call. Native GitHub Actions GITHUB_STEP_SUMMARY displays six contract-derived statuses and remaining evidence; test asserts 0/6 and no false verified flags. GitHub Projects sync is unavailable through the current connector and remains OPEN.",
+  "expected_impact": "Reduce unnecessary custom infrastructure, unsupported design proposals and duplicated tests while preserving one governance workflow. Optional local proposal agent reuses official C# integration; absent model service returns an error; no autonomous code edits. Recorded user-host bounded Ollama CPU token generation and failed Persian answer; qwen3:4b removed. Versioned optional profile is archival and disabled; no model can be considered installed or approved.",
+  "rollback_risk": "Decision-contract/policy changes are Git-revertible before merge; this is not proof of rollback of external state.",
+  "status": "EVIDENCE_REVIEWED"
+}

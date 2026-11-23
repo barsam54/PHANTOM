@@ -34,6 +34,15 @@ logs/
 *.sqlite-shm
 *.sqlite-wal
 
+# Large local LLM weights/caches belong on the host, never in Git
+*.gguf
+*.safetensors
+*.ggml
+*.ollama
+**/.ollama/
+**/models/blobs/
+**/models/manifests/
+
 # Python policy-check bytecode caches
 **/__pycache__/
 *.py[cod]

@@ -1,0 +1,202 @@
+{
+  "schema_version": "phantom.governance.contract.v1",
+  "status": "OPEN",
+  "gate": "GOV-P0",
+  "baseline": "docs/architecture/BASELINE.md",
+  "controller_spec": "docs/architecture/GOVERNANCE-CONTROLLER.md",
+  "orchestrator": "Microsoft Agent Framework C# (diagnostic ten-stage runtime exists; phase executor and acceptance OPEN)",
+  "ci": ".github/workflows/repository-policy.yml",
+  "capabilities": [
+    {
+      "id": "dashboard",
+      "state": "OPEN",
+      "proof": "derived GitHub Projects status from verified run manifest"
+    },
+    {
+      "id": "evidence",
+      "state": "OPEN",
+      "proof": "provenance/digest/criterion readback and reuse without duplicate testing"
+    },
+    {
+      "id": "end_to_end",
+      "state": "OPEN",
+      "proof": "one real phase execution through restart-safe acceptance"
+    },
+    {
+      "id": "enforcement",
+      "state": "OPEN",
+      "proof": "negative tests and effective merge barrier"
+    },
+    {
+      "id": "baseline_review",
+      "state": "OPEN",
+      "proof": "documented conflict, controlled amendment, permitted conforming fixes"
+    },
+    {
+      "id": "impact_rollback",
+      "state": "OPEN",
+      "proof": "versioned before/after metric baseline, independent regression comparison, bounded risk assessment, tested rollback and post-rollback verification"
+    }
+  ],
+  "phase_steps": [
+    "discover",
+    "baseline_review",
+    "dependencies",
+    "plan",
+    "authorized_execute",
+    "build_and_tests",
+    "evidence",
+    "acceptance",
+    "publish",
+    "checkpoint"
+  ],
+  "decisions": [
+    "PASS",
+    "REPAIRABLE",
+    "BLOCKED",
+    "PENDING"
+  ],
+  "denial_fields": [
+    "code",
+    "stage",
+    "reason",
+    "evidence",
+    "action",
+    "resume"
+  ],
+  "external_patterns": [
+    {
+      "source": "Microsoft",
+      "kind": "official-api",
+      "usage": "workflow/checkpoint/state/HITL; verify pinned C# API"
+    },
+    {
+      "source": "Anthropic",
+      "kind": "engineering-pattern",
+      "usage": "initializer, git progress, durable handoff, incremental tested edits"
+    },
+    {
+      "source": "Tsinghua",
+      "kind": "research-pattern",
+      "usage": "attributed lessons; no self-certification or extra orchestrator"
+    }
+  ],
+  "acceptance": "Single integration test of real phase including forced failure+resume, automatic evidence commit/PR and dashboard sync; negative bypass cases; paired before/after evaluation and exercised rollback in an isolated real-change scenario",
+  "release_allowed": false,
+  "impact_rollback": {
+    "state": "OPEN",
+    "scope": "Every proposed change; risk-adjusted evaluation, separate from SML scientific learning",
+    "required_fields": [
+      "change_id",
+      "base_sha",
+      "candidate_sha",
+      "affected_components",
+      "criteria_revision",
+      "metric_definitions",
+      "baseline_results",
+      "candidate_results",
+      "comparison_result",
+      "regression_findings",
+      "risk_class",
+      "rollback_target_sha",
+      "rollback_plan",
+      "rollback_test_evidence",
+      "post_change_monitoring",
+      "decision_evidence"
+    ],
+    "comparisons": [
+      "IMPROVED",
+      "EQUIVALENT",
+      "REGRESSION",
+      "INCONCLUSIVE"
+    ],
+    "acceptance_rules": [
+      "Determine accepted metrics, thresholds, tolerated tradeoffs and blocking safety bounds before evaluation",
+      "Compare matched datasets/environments; preserve independent test evidence and failure cases",
+      "IMPROVED and EQUIVALENT require justified goal attainment, no forbidden regression and validated rollback",
+      "REGRESSION blocks acceptance and triggers safe restoration where relevant",
+      "INCONCLUSIVE blocks acceptance of risky changes and requests missing evidence; never self-promote to PASS",
+      "Rollback must account for git changes and external state; git revert alone is not sufficient",
+      "Pre-change recovery point and post-rollback verification are mandatory where state changes can occur"
+    ],
+    "source_guidance": [
+      {
+        "source": "Microsoft",
+        "reference": "https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/safe-deployments",
+        "use": "safe change, progressive validation and rollback concepts as advisory engineering reference; Azure hosting not required"
+      },
+      {
+        "source": "Microsoft Agent Framework",
+        "reference": "https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoints",
+        "use": "orchestrate evaluation and checkpoint transitions using verified C# APIs, but never treat checkpoint as external rollback guarantee"
+      }
+    ]
+  },
+  "source_first": {
+    "state": "OPEN",
+    "enforcement_scope": "GOV-P0 architecture and workflow modifications; future per-change enforcement requires binding decisions to PR diff and independently verifying references",
+    "decision_record": "docs/architecture/SOURCE-FIRST-DECISION.json",
+    "required_fields": [
+      "decision_id",
+      "scope",
+      "problem",
+      "baseline_ref",
+      "candidate_solutions",
+      "chosen_option",
+      "why_existing_solution_is_insufficient",
+      "official_sources",
+      "evaluation_method",
+      "expected_impact",
+      "rollback_risk",
+      "status"
+    ],
+    "required_source_fields": [
+      "provider",
+      "url",
+      "applies_to",
+      "reviewed_version",
+      "verification"
+    ],
+    "official_hosts": [
+      "learn.microsoft.com",
+      "docs.github.com",
+      "docs.ollama.com"
+    ],
+    "no_invention_without_evidence": true,
+    "accepted_decision_statuses": [
+      "PROPOSED",
+      "EVIDENCE_REVIEWED",
+      "APPROVED"
+    ],
+    "no_automatic_baseline_approval": true
+  },
+  "evidence_handoff": {
+    "schema_version": "phantom.governance.evidence-pipeline.v1",
+    "owner": "Microsoft Agent Framework GovEvidence executor",
+    "producer": "scripts/governance_evidence_pipeline.py (CI verification adapter; not approval)",
+    "binding": [
+      "source_sha",
+      "contract_sha256",
+      "baseline_sha256",
+      "contract_gate"
+    ],
+    "scoped_status": "VERIFIED_SCOPE_ONLY",
+    "verified_scope": "two historical CI criteria only, not current-phase acceptance",
+    "invalid_or_missing": "BLOCKED",
+    "allowed_workflow_evidence_state": "SCOPED_ONLY",
+    "stage_acceptance_requires": "independent current-phase coverage, authorized run, impact/rollback, recovery, publication and approval",
+    "acceptance_when_scoped_only": "OPEN",
+    "prohibited": [
+      "accept historical CI as current phase",
+      "accept unverified self-reported PASS",
+      "skip phase-specific positive and negative acceptance tests"
+    ]
+  },
+  "acceptance_layers": {
+    "criterion": "verified for exact criterion, source and environment",
+    "capability": "all mandatory capability evidence linked to actual authorized workflow",
+    "gate": "full single-phase integration per unchanged Baseline section 12",
+    "unverified": "OPEN",
+    "no_automatic_promotion": true
+  }
+}
