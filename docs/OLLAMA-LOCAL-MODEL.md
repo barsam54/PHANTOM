@@ -32,6 +32,12 @@ The second command only works on a host running Ollama with `qwen3:4b`. It produ
 
 Microsoft vendor reference: https://learn.microsoft.com/en-us/agent-framework/agents/providers/ollama
 
+## Governance step 5 handoff (read-only)
+- Offline CI integration proof: `dotnet run --project src/Phantom.LocalGovernanceCli -- --probe-workflow`. This injects a **synthetic** proposal, not a local Ollama response. The existing Microsoft Agent Framework ten-executor workflow records only its SHA-256, bound Git HEAD and source label. The fifth executor returns `REVIEW_REQUIRED`; acceptance remains `OPEN`.
+- Explicit real-model handoff on a clean local checkout: `printf 'Describe a narrow, nonsensitive software issue' | dotnet run --project src/Phantom.LocalGovernanceCli -- --propose-workflow`. This calls local Ollama once and passes the untrusted result to the same workflow. The CLI prints the structured ten-stage report, **not the model text**; use `--propose` to inspect plain unverified text separately.
+- The CLI refuses an uncommitted/dirty Git worktree, oversized source input, invalid local endpoint, or missing Ollama runtime. A model proposal against a different revision is rejected. The workflow does not use the model to write files and cannot make an acceptance decision.
+- Independent review of official sources, impact, tests, and rollback is still required; a proposal digest is an integrity marker, not authentication or truth.
+
 ## Acceptance limits
 - Versioned profile and CI offline tests: checked by repo policy.
 - Host model-present check: **NOT PERFORMED** in this PR.
