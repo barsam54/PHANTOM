@@ -69,11 +69,11 @@ class GovernanceInventoryTests(unittest.TestCase):
         finally:
             inventory_module.git_revision = old
         text = inventory_module.markdown(report)
-        self.assertIn("GOV-P0 OPEN", text)
+        self.assertIn("ACCEPTANCE: OPEN", text)
         self.assertIn("NOT VERIFIED", text)
-        self.assertIn("Projects synchronized: NO", text)
-        self.assertIn("Protected-main historical evidence", text)
-        self.assertIn("Direct push denial tested: NO", text)
+        self.assertIn("GitHub Projects synchronized: **NO**", text)
+        self.assertIn("Verified and unverified enforcement", text)
+        self.assertIn("Direct-push denial tested: **NO**", text)
         self.assertIn("Verified capability acceptance: 0 / 6 (0%)", text)
         self.assertIn("░░░░░░", text)
         self.assertIn("1. Dashboard", text)
