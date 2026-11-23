@@ -52,5 +52,10 @@ jobs:
           path: ${{ runner.temp }}/gov-proposal-handoff.json
           if-no-files-found: warn
           retention-days: 30
+      - name: Verify process-separated Microsoft checkpoint capture and resume
+        run: |
+          checkpoint_dir="$RUNNER_TEMP/gov-checkpoints-restart"
+          dotnet run --project src/Phantom.LocalGovernanceCli/Phantom.LocalGovernanceCli.csproj --configuration Release --no-build -- --checkpoint-capture "$checkpoint_dir"
+          dotnet run --project src/Phantom.LocalGovernanceCli/Phantom.LocalGovernanceCli.csproj --configuration Release --no-build -- --checkpoint-resume "$checkpoint_dir"
       - name: Run MSTest using Microsoft.Testing.Platform
         run: dotnet test --project tests/Phantom.Infrastructure.Tests/Phantom.Infrastructure.Tests.csproj --configuration Release --no-restore
