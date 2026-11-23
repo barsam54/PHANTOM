@@ -131,5 +131,42 @@
         "use": "orchestrate evaluation and checkpoint transitions using verified C# APIs, but never treat checkpoint as external rollback guarantee"
       }
     ]
+  },
+  "source_first": {
+    "state": "OPEN",
+    "enforcement_scope": "GOV-P0 architecture and workflow modifications; future per-change enforcement requires binding decisions to PR diff and independently verifying references",
+    "decision_record": "docs/architecture/SOURCE-FIRST-DECISION.json",
+    "required_fields": [
+      "decision_id",
+      "scope",
+      "problem",
+      "baseline_ref",
+      "candidate_solutions",
+      "chosen_option",
+      "why_existing_solution_is_insufficient",
+      "official_sources",
+      "evaluation_method",
+      "expected_impact",
+      "rollback_risk",
+      "status"
+    ],
+    "required_source_fields": [
+      "provider",
+      "url",
+      "applies_to",
+      "reviewed_version",
+      "verification"
+    ],
+    "official_hosts": [
+      "learn.microsoft.com",
+      "docs.github.com"
+    ],
+    "no_invention_without_evidence": true,
+    "accepted_decision_statuses": [
+      "PROPOSED",
+      "EVIDENCE_REVIEWED",
+      "APPROVED"
+    ],
+    "no_automatic_baseline_approval": true
   }
 }
