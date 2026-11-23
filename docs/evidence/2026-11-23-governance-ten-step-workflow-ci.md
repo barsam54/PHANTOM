@@ -47,3 +47,13 @@ Evidence scope: `governance.dotnet_ci` only; prior-run results are tied to their
 - Stored output: [governance-cross-run-dotnet-evidence artifact 14794466156](https://github.com/barsam54/PHANTOM/actions/runs/45122587879).
 
 **Limitations:** GitHub's original archive checksum is attested as provider artifact metadata and transferred by the official download action; the Python readback does not independently hash original ZIP bytes. A successful historical .NET test record covers only the test scope stated here. Historical success cannot prove current SHA equivalence or completed end-to-end governance. Capability #2 and full GOV-P0 remain **OPEN** until the full criteria-to-implementation mapping and acceptance integration are independently verified.
+
+## Addendum 2026-11-23: conservative criterion-scoped reuse admission
+
+- Observed successful policy CI [run 45123226740](https://github.com/barsam54/PHANTOM/actions/runs/45123226740) and successful .NET CI [run 45123226675](https://github.com/barsam54/PHANTOM/actions/runs/45123226675), both at PR head `2d9b99a331ed8d683e4401370f169c3da3f713b2`.
+- Added `scripts/check_governance_reuse_eligibility.py` and `tests/policy/test_governance_reuse_eligibility.py`: only an independently checked historical proof, matching criterion ID and **identical complete Git tree** can be declared `REUSABLE`. Any difference must be `BLOCKED` with `REUSE_INPUT_TREE_CHANGED`.
+- Policy CI queried GitHub's commit/tree readback for the historical .NET evidence and current checkout. Actual result: **BLOCKED / REUSE_INPUT_TREE_CHANGED**, as expected for changed repository inputs. The negative assertion passed; no historical PASS was promoted to the new revision.
+- Positive tests cover distinct commits with identical trees; negatives cover changed trees, wrong criterion, forged/missing proof, incomplete commit identity, and missing tree data. The test cases are not proof that actual GitHub runs with identical trees occurred.
+- [Reuse eligibility artifact (14794472790)](https://github.com/barsam54/PHANTOM/actions/runs/45123226740) captures the provider-attested comparison.
+
+**Scope and remaining limitations:** This intentionally over-restrictive full-tree check may deny reuse for changes irrelevant to the test. It does not yet derive minimal per-criterion dependency fingerprints; the conservative denial is safer than applying mismatched evidence. Neither the standalone check nor historical receipts certify GOV-P0 acceptance or the full end-to-end phase. All six capability acceptance states remain OPEN until complete stage-to-criterion mapping and approved acceptance are demonstrated.
