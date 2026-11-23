@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
+using Microsoft.Agents.AI.Workflows.Checkpointing;
 
 namespace Phantom.AgentFramework;
 
@@ -48,7 +49,92 @@ public static class GovernancePhaseWorkflow
             throw new DirectoryNotFoundException(repositoryRoot);
         cancellationToken.ThrowIfCancellationRequested();
 
-        // One workflow, ten executor stages; no custom scheduling engine.
+        // One Microsoft Agent Framework workflow; no custom scheduling engine.
+        // A caller-supplied proposal is never executable authority.
+        // Keep only the hash/declared source in the workflow state and event stream.
+        ProposalReceipt? receipt = null;
+        if (untrustedProposal is not null)
+        {
+            if (string.IsNullOrWhiteSpace(untrustedProposal.Text) ||
+                untrustedProposal.Text.Length > 16_000 ||
+                string.IsNullOrWhiteSpace(untrustedProposal.Origin) ||
+                untrustedProposal.Origin.Length > 100 ||
+                string.IsNullOrWhiteSpace(untrustedProposal.BaseRevision))
+                throw new ArgumentException(
+                    "GOV_PROPOSAL_INVALID: proposal, origin and source revision are required and bounded.",
+                    nameof(untrustedProposal));
+            receipt = new ProposalReceipt(
+                Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(untrustedProposal.Text))),
+                untrustedProposal.BaseRevision, untrustedProposal.Origin);
+        }
+        Report start = new(repositoryRoot, revision, "GOV-P0", "OPEN",
+            Array.Empty<StepDecision>(), receipt);
+        await using Run run = await InProcessExecution.RunAsync(BuildWorkflow(), start);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        foreach (WorkflowEvent evt in run.NewEvents)
+        {
+            if (evt is ExecutorCompletedEvent done &&
+                done.ExecutorId == "GovCheckpoint" && done.Data is Report report)
+            {
+                if (report.Steps.Count != OrderedStages.Length ||
+                    !report.Steps.Select(x => x.Step).SequenceEqual(OrderedStages))
+                    throw new InvalidOperationException("GOV_STAGE_ORDER_INVALID: ten-step chain incomplete.");
+                if (report.Accepted)
+                    throw new InvalidOperationException("GOV_FALSE_ACCEPTANCE: diagnostics cannot close GOV-P0.");
+                return report;
+            }
+        }
+
+        throw new InvalidOperationException("GOV_WORKFLOW_INCOMPLETE: final executor did not produce a report.");
+    }
+
+    /// <summary>
+    /// Persists the same ten-stage read-only governance workflow using the official
+    /// .NET filesystem JSON checkpoint store. Recovery does NOT restore external effects.
+    /// </summary>
+    public static async Task<int> RunWithDiskCheckpointsAsync(
+        string repositoryRoot, string revision, string checkpointDirectory,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
+        ArgumentException.ThrowIfNullOrWhiteSpace(revision);
+        ArgumentException.ThrowIfNullOrWhiteSpace(checkpointDirectory);
+        if (!Path.IsPathFullyQualified(repositoryRoot) || !Directory.Exists(repositoryRoot))
+            throw new ArgumentException("Repository root must exist and be absolute.", nameof(repositoryRoot));
+        if (!Path.IsPathFullyQualified(checkpointDirectory))
+            throw new ArgumentException("Checkpoint directory must be absolute.", nameof(checkpointDirectory));
+        string projectPath = Path.GetFullPath(repositoryRoot) + Path.DirectorySeparatorChar;
+        string checkpointPath = Path.GetFullPath(checkpointDirectory);
+        if (checkpointPath.StartsWith(projectPath, StringComparison.Ordinal))
+            throw new ArgumentException("Checkpoint data must remain outside the source tree.", nameof(checkpointDirectory));
+        Directory.CreateDirectory(checkpointDirectory);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        using var store = new FileSystemJsonCheckpointStore(new DirectoryInfo(checkpointDirectory));
+        CheckpointManager manager = CheckpointManager.CreateJson(store);
+        Report input = new(repositoryRoot, revision, "GOV-P0", "OPEN",
+            Array.Empty<StepDecision>());
+        await using StreamingRun run = await InProcessExecution.RunStreamingAsync(
+            BuildWorkflow(), input, manager);
+        int outputs = 0;
+        await foreach (WorkflowEvent evt in run.WatchStreamAsync(cancellationToken))
+        {
+            if (evt is WorkflowOutputEvent output && output.Data is Report report)
+            {
+                if (report.Acceptance != "OPEN" || report.Steps.Count != OrderedStages.Length)
+                    throw new InvalidOperationException("GOV_CHECKPOINT_FALSE_ACCEPTANCE");
+                outputs++;
+            }
+        }
+        if (outputs != 1 || run.Checkpoints.Count == 0)
+            throw new InvalidOperationException("GOV_CHECKPOINT_NOT_CAPTURED");
+        return run.Checkpoints.Count;
+    }
+
+    private static Workflow BuildWorkflow()
+    {
+        // Ten stable executor identities are required by Microsoft checkpoint rehydration.
         var discover = ((Func<Report, Report>)Discover).BindAsExecutor("GovDiscover");
         var baseline = ((Func<Report, Report>)BaselineReview).BindAsExecutor("GovBaseline");
         var dependencies = ((Func<Report, Report>)Dependencies).BindAsExecutor("GovDependencies");
@@ -70,44 +156,8 @@ public static class GovernancePhaseWorkflow
         builder.AddEdge(evidence, acceptance);
         builder.AddEdge(acceptance, publish);
         builder.AddEdge(publish, checkpoint).WithOutputFrom(checkpoint);
+        return builder.Build();
 
-        // A caller-supplied proposal is never executable authority.
-        // Keep only the hash/declared source in the workflow state and event stream.
-        ProposalReceipt? receipt = null;
-        if (untrustedProposal is not null)
-        {
-            if (string.IsNullOrWhiteSpace(untrustedProposal.Text) ||
-                untrustedProposal.Text.Length > 16_000 ||
-                string.IsNullOrWhiteSpace(untrustedProposal.Origin) ||
-                untrustedProposal.Origin.Length > 100 ||
-                string.IsNullOrWhiteSpace(untrustedProposal.BaseRevision))
-                throw new ArgumentException(
-                    "GOV_PROPOSAL_INVALID: proposal, origin and source revision are required and bounded.",
-                    nameof(untrustedProposal));
-            receipt = new ProposalReceipt(
-                Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(untrustedProposal.Text))),
-                untrustedProposal.BaseRevision, untrustedProposal.Origin);
-        }
-        Report start = new(repositoryRoot, revision, "GOV-P0", "OPEN",
-            Array.Empty<StepDecision>(), receipt);
-        await using Run run = await InProcessExecution.RunAsync(builder.Build(), start);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        foreach (WorkflowEvent evt in run.NewEvents)
-        {
-            if (evt is ExecutorCompletedEvent done &&
-                done.ExecutorId == "GovCheckpoint" && done.Data is Report report)
-            {
-                if (report.Steps.Count != OrderedStages.Length ||
-                    !report.Steps.Select(x => x.Step).SequenceEqual(OrderedStages))
-                    throw new InvalidOperationException("GOV_STAGE_ORDER_INVALID: ten-step chain incomplete.");
-                if (report.Accepted)
-                    throw new InvalidOperationException("GOV_FALSE_ACCEPTANCE: diagnostics cannot close GOV-P0.");
-                return report;
-            }
-        }
-
-        throw new InvalidOperationException("GOV_WORKFLOW_INCOMPLETE: final executor did not produce a report.");
     }
 
     private static Report Add(Report report, string step, string status, string code,
