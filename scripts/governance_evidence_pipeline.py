@@ -6,6 +6,7 @@ workflow, NOT a second orchestrator or an acceptance authority. Provider
 readback occurs in the existing artifact validators before this entrypoint.
 """
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -93,6 +94,22 @@ def main():
             current_commit = json.loads(fetch(prefix + args.current_sha, token))
             result, details = evaluate(
                 contract, policy, dotnet, previous_commit, current_commit)
+            # This binding identifies the specific runner checkout and on-disk
+            # acceptance specification. It is NOT cryptographic authentication
+            # of the report's author or permission to accept a phase.
+            if result.get("status") == "VERIFIED_SCOPE_ONLY":
+                from subprocess import check_output
+                local_sha = check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+                if local_sha != args.current_sha:
+                    result, details = blocked("PIPELINE_CHECKOUT_MISMATCH",
+                                              "Local checkout differs from source readback"), {}
+                else:
+                    contract_file = Path(args.contract)
+                    baseline_file = Path(contract["baseline"])
+                    result["source_sha"] = local_sha
+                    result["contract_sha256"] = hashlib.sha256(contract_file.read_bytes()).hexdigest()
+                    result["baseline_sha256"] = hashlib.sha256(baseline_file.read_bytes()).hexdigest()
+                    result["contract_gate"] = contract["gate"]
         except (OSError, ValueError, TypeError, KeyError, UnicodeError) as exc:
             result, details = blocked("PIPELINE_READBACK_FAILED", type(exc).__name__), {}
     for name, document in (
