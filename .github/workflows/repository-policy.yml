@@ -332,9 +332,9 @@ jobs:
               assert report["reuse_allowed"] is False
           print("CURRENT_DOTNET_REUSE_ADMISSION:", report["status"], report["code"])
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as s:
-              s.write("\\n### Current revision evidence reuse admission\\n")
-              s.write("- Result: **" + report["status"] + "**; reason: " + report["code"] + "\\n")
-              s.write("- Reuse is allowed only for identical full Git trees and verified criterion. GOV-P0: OPEN.\\n")
+              s.write("\n### Current revision evidence reuse admission\n")
+              s.write("- Result: **" + report["status"] + "**; reason: " + report["code"] + "\n")
+              s.write("- Reuse is allowed only for identical full Git trees and verified criterion. GOV-P0: OPEN.\n")
           PY
       - name: Preserve reuse eligibility for audits
         if: always()
