@@ -24,13 +24,17 @@ bounded and each record must declare its expected terms.
 Interpretation: this proves live retrieval and occurrence of declared text.
 It does **not** independently demonstrate that technical interpretations,
 pinned NuGet APIs and intended capabilities are all correct.
-Correction after re-reading Microsoft's current official **C#** Ollama provider guide:
-C# uses `OllamaSharp` / `OllamaApiClient(...).AsAIAgent(...)`, matching the
-PHANTOM C# provider pattern. `OllamaChatClient` appears in Python-specific
-documentation; the previous claimed C# mismatch was a source-interpretation
-error. The corrected versioned source assertion is in
-`SOURCE-FIRST-DECISION.json`. Pinned-version build succeeds, but host inference
-quality and operational acceptance remain OPEN.
+Provider note (corrected after CI failure): the live Microsoft page served to
+GitHub Actions contains `OllamaChatClient` and `Native Ollama`, but not the
+`OllamaApiClient`/`AsAIAgent` assertions introduced in a later PR edit.
+Other official provider presentations/search results describe the C#
+`OllamaSharp`/`OllamaApiClient` pattern. These apparently different
+versions/pivots must **not** be reconciled by guesswork. PHANTOM's pinned C#
+code compiles and passes CI; exact official source/version parity and real
+host inference remain **INCONCLUSIVE / OPEN**. The fail-closed CI run
+`45097653411` correctly rejected unsupported assertions, which were then
+replaced with previously live-verified assertions. This is not proof of
+provider parity.
 
 ## Main branch ruleset readback
 
