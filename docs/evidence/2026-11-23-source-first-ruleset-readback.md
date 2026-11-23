@@ -24,8 +24,13 @@ bounded and each record must declare its expected terms.
 Interpretation: this proves live retrieval and occurrence of declared text.
 It does **not** independently demonstrate that technical interpretations,
 pinned NuGet APIs and intended capabilities are all correct.
-The Ollama .NET provider divergence is explicitly recorded in
-`SOURCE-FIRST-DECISION.json`; it remains a review item, not proof of parity.
+Correction after re-reading Microsoft's current official **C#** Ollama provider guide:
+C# uses `OllamaSharp` / `OllamaApiClient(...).AsAIAgent(...)`, matching the
+PHANTOM C# provider pattern. `OllamaChatClient` appears in Python-specific
+documentation; the previous claimed C# mismatch was a source-interpretation
+error. The corrected versioned source assertion is in
+`SOURCE-FIRST-DECISION.json`. Pinned-version build succeeds, but host inference
+quality and operational acceptance remain OPEN.
 
 ## Main branch ruleset readback
 
