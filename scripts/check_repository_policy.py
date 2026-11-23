@@ -255,7 +255,7 @@ def check_source_first_decision(root=ROOT):
             "GOV_SOURCE_CHOICE_UNREFERENCED", "Selected option does not exist in the comparison",
             "Select an explicitly assessed candidate option", [SOURCE_DECISION_FILE]))
     sources = record.get("official_sources")
-    permitted_hosts = {"learn.microsoft.com", "docs.github.com"}
+    permitted_hosts = {"learn.microsoft.com", "docs.github.com", "docs.ollama.com"}
     if not isinstance(sources, list) or not sources or any(
         not isinstance(item, dict) or not SOURCE_REFERENCE_FIELDS.issubset(item)
         or any(not isinstance(item.get(key), str) or not item[key].strip()
