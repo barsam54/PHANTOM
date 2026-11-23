@@ -271,6 +271,62 @@ jobs:
               summary.write("- Required next gate: phase-scoped accepted evidence consumed by Microsoft Agent Framework.\n")
           print("UNIFIED_EVIDENCE_PIPELINE: VERIFIED_SCOPE_ONLY; GOV-P0: OPEN")
           PY
+      - name: Install .NET for real Microsoft workflow evidence handoff
+        if: github.event_name == 'pull_request'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.115'
+      - name: Consume current CI evidence in Microsoft Agent Framework
+        if: github.event_name == 'pull_request'
+        run: |
+          dotnet build src/Phantom.LocalGovernanceCli/Phantom.LocalGovernanceCli.csproj --configuration Release
+          dotnet run --project src/Phantom.LocalGovernanceCli/Phantom.LocalGovernanceCli.csproj \
+            --configuration Release --no-build -- \
+            --evidence-report "$RUNNER_TEMP/governance-evidence-pipeline.json" > "$RUNNER_TEMP/governance-framework-evidence.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"])
+          report = json.loads((root / "governance-framework-evidence.json").read_text())
+          assert report["Acceptance"] == "OPEN"
+          assert report["Steps"][6]["Status"] == "SCOPED_ONLY"
+          assert report["Steps"][6]["Code"] == "GOV_HISTORICAL_CI_RECEIPT_CONSUMED"
+          assert report["Steps"][7]["Status"] == "BLOCKED"
+          print("MICROSOFT_EVIDENCE_HANDOFF: SCOPED_ONLY; GOV-P0: OPEN")
+          PY
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path(os.environ["RUNNER_TEMP"]) / "governance-evidence-pipeline.json"
+          report = json.loads(path.read_text())
+          report["source_sha"] = "0" * 40
+          (path.parent / "tampered-governance-evidence.json").write_text(json.dumps(report))
+          PY
+          if dotnet run --project src/Phantom.LocalGovernanceCli/Phantom.LocalGovernanceCli.csproj \
+            --configuration Release --no-build -- \
+            --evidence-report "$RUNNER_TEMP/tampered-governance-evidence.json" > "$RUNNER_TEMP/governance-framework-rejected.json"; then
+            echo "ERROR: tampered SHA was accepted" >&2
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"])
+          rejected = json.loads((root / "governance-framework-rejected.json").read_text())
+          assert rejected["Steps"][6]["Code"] == "GOV_EVIDENCE_BINDING_INVALID"
+          assert rejected["Acceptance"] == "OPEN"
+          print("MICROSOFT_EVIDENCE_NEGATIVE: PASS; FORGED_SHA_BLOCKED")
+          PY
+      - name: Preserve Microsoft workflow evidence handoff results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-framework-evidence-handoff
+          path: |
+            ${{ runner.temp }}/governance-framework-evidence.json
+            ${{ runner.temp }}/governance-framework-rejected.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Preserve unified evidence pipeline and component audit receipts
         if: always()
         uses: actions/upload-artifact@v4
