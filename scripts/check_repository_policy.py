@@ -17,7 +17,7 @@ ALLOWED_ROOT_DIRS = {
     "src", "tests", "benchmarks", "docs", "infra", "scripts", ".github",
 }
 BLOCKED_COMPONENTS = {"bin", "obj", "TestResults", "__pycache__", ".vs", ".idea"}
-BLOCKED_SUFFIXES = {".sqlite", ".db", ".bak", ".backup", ".pfx", ".pem", ".key", ".trx"}
+BLOCKED_SUFFIXES = {".sqlite", ".db", ".bak", ".backup", ".pfx", ".pem", ".key", ".trx", ".gguf", ".ggml", ".safetensors"}
 BLOCKED_NAMES = {".env", "secrets.json", "appsettings.Development.json"}
 BLOCKED_PREFIXES = ("artifacts/", "data/", "logs/", "backups/", "backup/")
 MAX_EVIDENCE_BYTES = 256 * 1024
