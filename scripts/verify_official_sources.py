@@ -19,7 +19,7 @@ from urllib.request import HTTPSHandler, HTTPRedirectHandler, Request, build_ope
 ROOT = Path(__file__).resolve().parents[1]
 RECORD = ROOT / "docs/architecture/SOURCE-FIRST-DECISION.json"
 CONTRACT = ROOT / "docs/architecture/GOVERNANCE-CONTRACT.json"
-MAX_PAGE_BYTES = 2_000_000
+MAX_PAGE_BYTES = 8_000_000
 MAX_ASSERTIONS_PER_SOURCE = 12
 PATTERN = re.compile(r"^[\w][\w .\-/:()]{2,119}$", re.UNICODE)
 
