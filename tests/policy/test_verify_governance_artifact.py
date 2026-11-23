@@ -12,6 +12,7 @@ spec = importlib.util.spec_from_file_location("evidence_readback", SRC)
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 SHA = "a" * 40
+HEAD = "c" * 40
 RUN = 92
 
 
@@ -42,7 +43,7 @@ def archive(inv, probe):
 def metadata(data):
     return {"id": 11, "name": "governance-inventory", "expired": False,
             "digest": "sha256:" + mod.sha(data),
-            "workflow_run": {"id": RUN, "head_sha": SHA}}
+            "workflow_run": {"id": RUN, "head_sha": HEAD}}
 
 
 def check(cb, bb, inv, probe, *, data=None, art=None):
@@ -99,13 +100,15 @@ class EvidenceContentTests(unittest.TestCase):
         raw = "https://raw.githubusercontent.com/o/r/" + SHA + "/"
         readback = {
             root: json.dumps({"id": RUN, "name": "Repository Policy Guard",
-                              "head_sha": SHA, "event": "pull_request",
+                              "head_sha": HEAD, "event": "pull_request",
                               "status": "completed", "conclusion": "success"}).encode(),
             root + "/jobs?per_page=100": json.dumps({"total_count": 1, "jobs": [
                 {"status": "completed", "conclusion": "success"}]}).encode(),
             root + "/artifacts?per_page=100": json.dumps({"total_count": 1,
                 "artifacts": [metadata(data)]}).encode(),
             raw + mod.CONTRACT: cb, raw + mod.BASELINE: bb,
+            "https://api.github.com/repos/o/r/commits/" + SHA: json.dumps({
+                "sha": SHA, "parents": [{"sha": "b" * 40}, {"sha": HEAD}]}).encode(),
             base + "artifacts/11/zip": data,
         }
         calls = []
@@ -113,8 +116,8 @@ class EvidenceContentTests(unittest.TestCase):
             calls.append(url)
             return readback[url]
         with tempfile.TemporaryDirectory() as td:
-            first = mod.verify_live("o/r", RUN, SHA, td, read=fetch)
-            second = mod.verify_live("o/r", RUN, SHA, td, read=fetch)
+            first = mod.verify_live("o/r", RUN, HEAD, td, read=fetch)
+            second = mod.verify_live("o/r", RUN, HEAD, td, read=fetch)
             self.assertEqual("CHECK_OK", first["status"])
             self.assertEqual("CHECK_OK", second["status"])
             self.assertFalse(first["archive_reused"])
@@ -127,7 +130,7 @@ class EvidenceContentTests(unittest.TestCase):
             new["digest"] = "sha256:" + "e" * 64
             readback[root + "/artifacts?per_page=100"] = json.dumps({
                 "total_count": 1, "artifacts": [new]}).encode()
-            third = mod.verify_live("o/r", RUN, SHA, td, read=fetch)
+            third = mod.verify_live("o/r", RUN, HEAD, td, read=fetch)
             self.assertEqual("ARCHIVE_DIGEST_MISMATCH", third["code"])
 
 
