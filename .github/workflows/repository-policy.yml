@@ -107,7 +107,35 @@ jobs:
               and (run.get("head_repository") or {}).get("full_name") == repo]
           if not eligible:
               sys.exit("NO_PREVIOUS_TRUSTED_SUCCESSFUL_PR_RUN")
-          prior = eligible[0]
+          headers = {
+              "Accept": "application/vnd.github+json",
+              "Authorization": "Bearer " + os.environ["GITHUB_TOKEN"],
+              "X-GitHub-Api-Version": "2022-11-28"}
+          def get(url):
+              request = urllib.request.Request(url, headers=headers)
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  return json.load(response)
+          root = f"https://api.github.com/repos/{repo}"
+          dotnet_runs = get(root + "/actions/workflows/dotnet-build-test.yml/runs?event=pull_request&status=success&per_page=100")["workflow_runs"]
+          prior = None
+          for candidate in eligible:
+              matching_dotnet = [run for run in dotnet_runs
+                  if run.get("head_sha") == candidate["head_sha"]
+                  and run.get("status") == "completed"
+                  and run.get("conclusion") == "success"
+                  and (run.get("head_repository") or {}).get("full_name") == repo]
+              for dotnet in matching_dotnet:
+                  artifacts = get(root + "/actions/runs/" + str(dotnet["id"]) + "/artifacts?per_page=100")["artifacts"]
+                  receipts = [artifact for artifact in artifacts
+                      if artifact.get("name") == "governance-dotnet-test-evidence"
+                      and artifact.get("expired") is False]
+                  if len(receipts) == 1:
+                      prior = candidate
+                      break
+              if prior is not None:
+                  break
+          if prior is None:
+              sys.exit("NO_MATCHED_HISTORICAL_POLICY_DOTNET_EVIDENCE_PAIR")
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
               output.write("run_id=" + str(prior["id"]) + "\n")
               output.write("head_sha=" + prior["head_sha"] + "\n")
