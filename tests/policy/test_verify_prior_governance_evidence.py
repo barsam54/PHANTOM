@@ -62,6 +62,10 @@ class PriorEvidenceTests(unittest.TestCase):
             second = module.verify_extracted("o/r", RUN, HEAD, td, read=fetch)
             self.assertEqual("CHECK_OK", first["status"])
             self.assertEqual("CHECK_OK", second["status"])
+            self.assertEqual(first, second)
+            self.assertEqual(first["archive_sha256"], second["archive_sha256"])
+            self.assertEqual(first["repacked_validation_zip_sha256"],
+                             second["repacked_validation_zip_sha256"])
             self.assertTrue(second["reused_existing_run"])
             self.assertFalse(second["new_build_or_test_invoked_by_verifier"])
             self.assertEqual("NOT_ASSESSED", second["current_revision_acceptance"])
