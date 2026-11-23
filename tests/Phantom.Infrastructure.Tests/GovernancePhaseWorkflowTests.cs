@@ -19,6 +19,9 @@ public sealed class GovernancePhaseWorkflowTests
             report.Steps.Select(x => x.Step).ToArray());
         Assert.AreEqual("CHECK_OK", report.Steps[0].Status);
         Assert.AreEqual("NOT_IMPLEMENTED", report.Steps[4].Status);
+        Assert.AreEqual("BLOCKED", report.Steps[6].Status);
+        Assert.AreEqual("GOV_EVIDENCE_INDEPENDENT_VERIFICATION_MISSING", report.Steps[6].Code);
+        Assert.IsFalse(report.Accepted);
         Assert.AreEqual("BLOCKED", report.Steps[7].Status);
         Assert.AreEqual("NOT_IMPLEMENTED", report.Steps[9].Status);
         foreach (var decision in report.Steps)
@@ -29,6 +32,18 @@ public sealed class GovernancePhaseWorkflowTests
             Assert.IsFalse(string.IsNullOrWhiteSpace(decision.Evidence));
             Assert.IsFalse(string.IsNullOrWhiteSpace(decision.Resume));
         }
+    }
+
+    [TestMethod]
+    public async Task ExistingEvidenceFilesNeverCountAsVerifiedReceipts()
+    {
+        string repository = FindRepositoryRoot();
+        Assert.IsTrue(Directory.Exists(Path.Combine(repository, "docs", "evidence")));
+        var report = await GovernancePhaseWorkflow.RunAsync(repository, new string('e', 40));
+        var evidence = report.Steps.Single(x => x.Step == "evidence");
+        Assert.AreEqual("BLOCKED", evidence.Status);
+        Assert.AreEqual("GOV_EVIDENCE_INDEPENDENT_VERIFICATION_MISSING", evidence.Code);
+        Assert.IsFalse(report.Accepted);
     }
 
     [TestMethod]
