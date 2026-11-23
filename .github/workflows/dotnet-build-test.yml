@@ -49,6 +49,9 @@ jobs:
           assert len(steps) == 10
           assert steps[4]["Status"] == "REVIEW_REQUIRED"
           assert steps[4]["Code"] == "GOV_UNTRUSTED_PROPOSAL_RECORDED"
+          assert steps[6]["Status"] == "BLOCKED"
+          assert steps[6]["Code"] == "GOV_EVIDENCE_INDEPENDENT_VERIFICATION_MISSING"
+          assert all(steps[6].get(k) for k in ("Reason", "Action", "Evidence", "Resume"))
           assert steps[7]["Status"] == "BLOCKED"
           assert report["Proposal"]["Origin"] == "test:synthetic-no-inference"
           assert len(report["Proposal"]["Sha256"]) == 64
