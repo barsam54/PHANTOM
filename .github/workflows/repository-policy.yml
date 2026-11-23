@@ -140,7 +140,7 @@ jobs:
               summary.write("- Content readback: **PASS**; false PASS negative test: **PASS**.\\n")
               summary.write("- Repeated scoped evaluation: **PASS** without re-running tests.\\n")
               summary.write("- Original archive digest: verified by the official download action, not this Python step.\\n")
-              summary.write("- Durable cross-run evidence reuse: **NOT YET PROVEN**; GOV-P0: **OPEN**.\\n")
+              summary.write("- Cross-run reuse is checked in a separate step below; GOV-P0: **OPEN**.\\n")
           print("SAME_RUN_ARTIFACT_CONTENT_READBACK: PASS; SCOPED_REUSE: PASS; GOV-P0: OPEN")
           PY
       - name: Preserve independent artifact readback evidence
