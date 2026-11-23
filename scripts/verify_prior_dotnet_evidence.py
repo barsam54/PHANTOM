@@ -84,7 +84,7 @@ def verify(repo, run_id, head_sha, directory, *, read=fetch, token=None):
         doc.get("acceptance") != "OPEN"):
         return denial("DOTNET_RECEIPT_MISMATCH", "Document or test log contradicts pinned source/CI")
     # Successful runners often report "Failed: 0"; only nonzero failures deny.
-    failed_counts = re.findall(rb"(?im)^\\s*Failed:\\s*([0-9]+)\\b", log)
+    failed_counts = re.findall(rb"(?im)^\s*Failed:\s*([0-9]+)\b", log)
     if any(int(value) > 0 for value in failed_counts):
         return denial("DOTNET_LOG_FAILURE_MARKER", "Test log reports failed tests")
     return {
