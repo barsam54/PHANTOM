@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Agents.AI.Workflows.Checkpointing;
@@ -254,6 +255,12 @@ public static class GovernancePhaseWorkflow
                 "Repair the first blocking prerequisite, rerun preflight and resume from the specified step.",
                 "docs/architecture/GOVERNANCE-CONTRACT.json", "discover");
 
+        if (!HasSourceFirstReview(state))
+            return Add(state, "authorized_execute", "BLOCKED", "GOV_SOURCE_FIRST_REVIEW_MISSING",
+                "The versioned official-source review record is missing, malformed or not reviewed.",
+                "Review authoritative sources, compare reuse options and record the version-tested decision before any model proposal.",
+                "docs/architecture/SOURCE-FIRST-DECISION.json", "baseline_review");
+
         if (state.Proposal is not null)
         {
             if (!string.Equals(state.Proposal.BaseRevision, state.Revision, StringComparison.Ordinal))
@@ -270,6 +277,47 @@ public static class GovernancePhaseWorkflow
             "No independently qualified low-privilege coding worker is connected.",
             "Connect and test a bounded worker on an isolated branch before enabling modifications.",
             "docs/architecture/GOVERNANCE-CONTROLLER.md", "authorized_execute");
+    }
+
+    private static bool HasSourceFirstReview(Report state)
+    {
+        string file = FileAt(state, "docs/architecture/SOURCE-FIRST-DECISION.json");
+        if (!File.Exists(file))
+            return false;
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(File.ReadAllText(file, Encoding.UTF8));
+            JsonElement root = document.RootElement;
+            if (!root.TryGetProperty("status", out var status) ||
+                status.GetString() != "EVIDENCE_REVIEWED" ||
+                !root.TryGetProperty("candidate_solutions", out var options) ||
+                options.ValueKind != JsonValueKind.Array ||
+                options.GetArrayLength() < 2 ||
+                !root.TryGetProperty("official_sources", out var sources) ||
+                sources.ValueKind != JsonValueKind.Array ||
+                sources.GetArrayLength() < 1)
+                return false;
+            foreach (var item in sources.EnumerateArray())
+            {
+                if (!item.TryGetProperty("url", out var url) ||
+                    !item.TryGetProperty("reviewed_version", out var version) ||
+                    !item.TryGetProperty("verification", out var verification) ||
+                    !Uri.TryCreate(url.GetString(), UriKind.Absolute, out Uri? parsed) ||
+                    parsed.Scheme != Uri.UriSchemeHttps ||
+                    parsed.Host is not ("learn.microsoft.com" or "docs.github.com" or "docs.ollama.com") ||
+                    string.IsNullOrWhiteSpace(version.GetString()) ||
+                    string.IsNullOrWhiteSpace(verification.GetString()))
+                    return false;
+            }
+            // This read-only admission check is NOT authoritative verification of vendor
+            // semantics; PR diff source coverage and CI are checked separately.
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+            or JsonException or InvalidOperationException or ArgumentException)
+        {
+            return false;
+        }
     }
 
     private static Report BuildAndTests(Report state) =>
