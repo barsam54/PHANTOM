@@ -53,7 +53,7 @@
       "kind": "REUSE",
       "reference": "GitHub Actions workflow checks and artifacts",
       "outcome": "PREFERRED",
-      "reason": "Existing workflows already run tests and publish diagnostic artifacts; merge barrier needs actual branch protection."
+      "reason": "Reuse existing Actions policy and .NET jobs. Active main ruleset and blocked failed-check PR #2 observed; continue periodic drift validation."
     },
     {
       "id": "custom_orchestration",
@@ -71,7 +71,7 @@
     }
   ],
   "chosen_option": "reuse_framework",
-  "why_existing_solution_is_insufficient": "Existing framework primitives can orchestrate executors but PHANTOM has not implemented a bounded coding worker, independently verified checkpoint/rollback, or enforced GitHub merge barrier. Only those integration components may need new code.",
+  "why_existing_solution_is_insufficient": "Existing framework primitives orchestrate executors but PHANTOM has not implemented a bounded coding worker or independently verified external side-effect checkpoint/rollback. The GitHub required-check barrier has been configured and negatively observed for a failing non-draft PR; direct-push and attempted merge rejection are not exercised.",
   "official_sources": [
     {
       "provider": "Microsoft",
@@ -122,7 +122,7 @@
       "url": "https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks",
       "applies_to": "CI passing does not necessarily satisfy or enforce merge requirements",
       "reviewed_version": "GitHub official documentation checked 2026-11-23",
-      "verification": "Current private main has no demonstrated effective enforced required check: OPEN.",
+      "verification": "Observed active public main ruleset #27867625 requiring two trusted CI checks. Negative non-draft PR #2 with failed policy check reported mergeable_state=blocked and was closed unmerged. No actual merge API rejection or direct-push test; historical evidence only.",
       "expected_terms": [
         "required status check",
         "protected"
@@ -153,7 +153,7 @@
     }
   ],
   "evaluation_method": "Before implementation, compare official supported APIs and pinned-version builds; after implementation verify CI negative tests, end-to-end phase acceptance, measured impact and rollback. PR-scoped source-first enforcement compares every changed path from immutable base SHA to the review record. Required status checks must be configured separately to block merges. CI fetches all declared official documents live and checks source-specific text claims; this is not independent verification of interpretation or pinned NuGet API. GitHub REST readback in versioned evidence observes effective ruleset configuration but does not substitute for a negative merge test. Non-draft PR #2 on protected main intentionally failed the required Repository Policy Guard; live GitHub mergeable_state=blocked observed, then PR closed without merge; this does not establish rejected direct push or attempted merge API call.",
-  "expected_impact": "Reduce unnecessary custom infrastructure, unsupported design proposals and duplicated tests while preserving one governance workflow. Optional Qwen3 4b proposal agent reuses official C# integration; absent model service returns an error; no autonomous code edits. Recorded user-host bounded Ollama CPU token generation and failed Persian answer; qwen3:4b removed. Versioned optional profile is archival and disabled; no model can be considered installed or approved.",
+  "expected_impact": "Reduce unnecessary custom infrastructure, unsupported design proposals and duplicated tests while preserving one governance workflow. Optional local proposal agent reuses official C# integration; absent model service returns an error; no autonomous code edits. Recorded user-host bounded Ollama CPU token generation and failed Persian answer; qwen3:4b removed. Versioned optional profile is archival and disabled; no model can be considered installed or approved.",
   "rollback_risk": "Decision-contract/policy changes are Git-revertible before merge; this is not proof of rollback of external state.",
   "status": "EVIDENCE_REVIEWED"
 }
