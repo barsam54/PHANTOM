@@ -49,6 +49,19 @@ jobs:
         run: |
           python3 scripts/governance_phase0_probe.py --json-out "$RUNNER_TEMP/governance-phase0-ten-steps.json" --summary-out "$RUNNER_TEMP/governance-phase0-ten-steps.md"
           cat "$RUNNER_TEMP/governance-phase0-ten-steps.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Render read-only governance HTML dashboard and SVG progress chart
+        if: always()
+        run: |
+          if test -s "$RUNNER_TEMP/governance-inventory.json" && test -s "$RUNNER_TEMP/governance-phase0-ten-steps.json"; then
+            python3 scripts/render_governance_dashboard.py \
+              --inventory "$RUNNER_TEMP/governance-inventory.json" \
+              --probe "$RUNNER_TEMP/governance-phase0-ten-steps.json" \
+              --output-dir "$RUNNER_TEMP/governance-dashboard"
+            cat "$RUNNER_TEMP/governance-dashboard/dashboard.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '### Dashboard BLOCKED: required evidence snapshots missing' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
       - name: Preserve governance inventory for audit
         if: always()
         uses: actions/upload-artifact@v4
@@ -60,5 +73,6 @@ jobs:
             ${{ runner.temp }}/governance-summary.md
             ${{ runner.temp }}/governance-phase0-ten-steps.json
             ${{ runner.temp }}/governance-phase0-ten-steps.md
+            ${{ runner.temp }}/governance-dashboard/
           if-no-files-found: warn
           retention-days: 30
