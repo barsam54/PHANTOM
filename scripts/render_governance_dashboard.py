@@ -154,7 +154,7 @@ def dashboard_html(data):
 Contract SHA-256: <code>{esc(data["contract_sha256"])}</code></small></header>
 <h2>Acceptance summary</h2>
 <section class="grid">
-{card("Accepted capabilities", "0 / 6", "No final capability PASS is supported by complete evidence.")}
+{card("Accepted capabilities", "0 / 6", "0 / 6 accepted. No final capability PASS is supported by complete evidence.")}
 {card("Ten-step workflow", "OPEN", "Readiness probe, not autonomous phase execution.")}
 {card("Historical evidence", str(data["historical_evidence_files"]), "Files discovered, not independently validated.")}
 {card("Projects sync", "NOT CONNECTED", "GitHub Projects is not a verified projection source.")}
