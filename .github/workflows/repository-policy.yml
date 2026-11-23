@@ -23,6 +23,15 @@ jobs:
       - name: Live-verify official sources and declared technical claims
         if: github.event_name == 'pull_request'
         run: python3 scripts/verify_official_sources.py --json-out "$RUNNER_TEMP/source-audit.json"
+      - name: Record live source validation in GitHub Actions summary
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/source-audit.json"; then
+            echo '### Live official source verification (text assertions only)' >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat "$RUNNER_TEMP/source-audit.json" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Enforce source-first review for every changed PR file
         if: github.event_name == 'pull_request'
         env:
@@ -46,6 +55,7 @@ jobs:
         with:
           name: governance-inventory
           path: |
+            ${{ runner.temp }}/source-audit.json
             ${{ runner.temp }}/governance-inventory.json
             ${{ runner.temp }}/governance-summary.md
             ${{ runner.temp }}/governance-phase0-ten-steps.json
