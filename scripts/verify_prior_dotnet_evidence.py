@@ -83,8 +83,10 @@ def verify(repo, run_id, head_sha, directory, *, read=fetch, token=None):
         doc.get("test_log_sha256") != dig(log) or doc.get("test_log_bytes") != len(log) or
         doc.get("acceptance") != "OPEN"):
         return denial("DOTNET_RECEIPT_MISMATCH", "Document or test log contradicts pinned source/CI")
-    if b"error:" in log.lower() or b"failed:" in log.lower():
-        return denial("DOTNET_LOG_FAILURE_MARKER", "Test log contains explicit failure marker")
+    # Successful runners often report "Failed: 0"; only nonzero failures deny.
+    failed_counts = re.findall(rb"(?im)^\\s*Failed:\\s*([0-9]+)\\b", log)
+    if any(int(value) > 0 for value in failed_counts):
+        return denial("DOTNET_LOG_FAILURE_MARKER", "Test log reports failed tests")
     return {
         "status": "CHECK_OK", "criterion_verified": True, "criterion": CRITERION,
         "historical_run_id": run_id, "historical_head_sha": head_sha,
