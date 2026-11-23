@@ -1,0 +1,78 @@
+{
+  "schema_version": "phantom.governance.source-decision.v1",
+  "decision_id": "GOV-P0-SOURCE-FIRST-001",
+  "scope": [
+    "docs/architecture/BASELINE.md",
+    "docs/architecture/GOVERNANCE-CONTROLLER.md",
+    "src/Phantom.AgentFramework/GovernancePhaseWorkflow.cs",
+    "scripts/check_repository_policy.py"
+  ],
+  "problem": "The governance workflow contains inspection executors and previously allowed design decisions before validating existing vendor-supported options.",
+  "baseline_ref": "docs/architecture/BASELINE.md#12-p0--unified-development-governance-controller-proposed-implementation-contract-open",
+  "candidate_solutions": [
+    {
+      "id": "reuse_framework",
+      "kind": "REUSE",
+      "reference": "Microsoft Agent Framework C# workflows/executors/checkpoints",
+      "outcome": "PREFERRED",
+      "reason": "Already pinned Microsoft.Agents.AI.Workflows 1.28.0 and C# workflow tests run in CI."
+    },
+    {
+      "id": "reuse_github",
+      "kind": "REUSE",
+      "reference": "GitHub Actions workflow checks and artifacts",
+      "outcome": "PREFERRED",
+      "reason": "Existing workflows already run tests and publish diagnostic artifacts; merge barrier needs actual branch protection."
+    },
+    {
+      "id": "custom_orchestration",
+      "kind": "NEW_IMPLEMENTATION",
+      "reference": "new standalone scheduling engine",
+      "outcome": "REJECTED",
+      "reason": "Duplicates official workflow orchestration and increases architecture/maintenance risk."
+    }
+  ],
+  "chosen_option": "reuse_framework",
+  "why_existing_solution_is_insufficient": "Existing framework primitives can orchestrate executors but PHANTOM has not implemented a bounded coding worker, independently verified checkpoint/rollback, or enforced GitHub merge barrier. Only those integration components may need new code.",
+  "official_sources": [
+    {
+      "provider": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/agent-framework/workflows/workflows",
+      "applies_to": "C# workflow/executor graph and runtime",
+      "reviewed_version": "Official documentation checked 2026-11-23; pinned package 1.28.0 must be checked by build/tests",
+      "verification": "Existing FirstWorkflow and GOV-P0 .NET build/integration tests; no production worker claim."
+    },
+    {
+      "provider": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoints",
+      "applies_to": "checkpoint/resume; not external side-effect rollback",
+      "reviewed_version": "Official documentation checked 2026-11-23; package API compatibility pending runtime acceptance",
+      "verification": "Durable governance restart/resume not tested: OPEN."
+    },
+    {
+      "provider": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/tools-processes",
+      "applies_to": "documented design decisions and reuse/review of tools",
+      "reviewed_version": "Official guidance checked 2026-11-23; platform-agnostic practice only",
+      "verification": "Contract guard checks versioned decision structure, not truth of source."
+    },
+    {
+      "provider": "GitHub",
+      "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax",
+      "applies_to": "least-privilege permissions and CI trigger semantics",
+      "reviewed_version": "GitHub official documentation checked 2026-11-23; platform behavior may evolve",
+      "verification": "Repository policy workflow tests current PR; branch protection not proved."
+    },
+    {
+      "provider": "GitHub",
+      "url": "https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks",
+      "applies_to": "CI passing does not necessarily satisfy or enforce merge requirements",
+      "reviewed_version": "GitHub official documentation checked 2026-11-23",
+      "verification": "Current private main has no demonstrated effective enforced required check: OPEN."
+    }
+  ],
+  "evaluation_method": "Before implementation, compare official supported APIs and pinned-version builds; after implementation verify CI negative tests, end-to-end phase acceptance, measured impact and rollback.",
+  "expected_impact": "Reduce unnecessary custom infrastructure, unsupported design proposals and duplicated tests while preserving one governance workflow.",
+  "rollback_risk": "Decision-contract/policy changes are Git-revertible before merge; this is not proof of rollback of external state.",
+  "status": "EVIDENCE_REVIEWED"
+}
