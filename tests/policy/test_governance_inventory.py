@@ -24,7 +24,8 @@ class GovernanceInventoryTests(unittest.TestCase):
         (self.root / inventory_module.CONTRACT_PATH).write_text(
             json.dumps(contract), encoding="utf-8"
         )
-        (doc / "BASELINE.md").write_text("# test baseline", encoding="utf-8")
+        (doc / "BASELINE.md").write_text("## 12. P0 - test baseline", encoding="utf-8")
+        (doc / "GOVERNANCE-CONTROLLER.md").write_text("# test controller", encoding="utf-8")
 
     def test_does_not_treat_file_presence_as_pass(self):
         ev = self.root / "docs/evidence"
@@ -38,6 +39,8 @@ class GovernanceInventoryTests(unittest.TestCase):
             inventory_module.git_revision = old
         self.assertEqual("OPEN", record["decision"])
         self.assertFalse(record["historical_evidence_verified"])
+        self.assertEqual("SIX_CONTRACT_CRITERIA_PRESENT_NOT_VERIFIED", record["traceability"]["coverage"])
+        self.assertEqual(6, record["traceability"]["unverified_acceptance_count"])
         self.assertEqual(1, record["historical_evidence_files_found"])
         self.assertEqual(1, len(record["evidence_integrity_inventory"]))
         self.assertEqual("sml02-pass-claimed.md",
@@ -52,6 +55,48 @@ class GovernanceInventoryTests(unittest.TestCase):
         self.assertFalse(barrier["verified"])
         self.assertFalse(barrier["current_ruleset_revalidated"])
         self.assertFalse(barrier["direct_push_rejection_tested"])
+
+    def test_rejects_incomplete_capability_contract(self):
+        target = self.root / inventory_module.CONTRACT_PATH
+        contract = json.loads(target.read_text(encoding="utf-8"))
+        contract["capabilities"] = contract["capabilities"][:-1]
+        target.write_text(json.dumps(contract), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "GOV_CAPABILITY_COVERAGE_INVALID"):
+            inventory_module.inventory(self.root)
+
+    def test_rejects_duplicate_capability(self):
+        target = self.root / inventory_module.CONTRACT_PATH
+        contract = json.loads(target.read_text(encoding="utf-8"))
+        contract["capabilities"][-1]["id"] = contract["capabilities"][0]["id"]
+        target.write_text(json.dumps(contract), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "GOV_CAPABILITY_COVERAGE_INVALID"):
+            inventory_module.inventory(self.root)
+
+    def test_rejects_unverified_capability_pass(self):
+        target = self.root / inventory_module.CONTRACT_PATH
+        contract = json.loads(target.read_text(encoding="utf-8"))
+        contract["capabilities"][0]["state"] = "PASS"
+        target.write_text(json.dumps(contract), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "GOV_UNVERIFIED_CAPABILITY"):
+            inventory_module.inventory(self.root)
+
+    def test_rejects_missing_criterion(self):
+        target = self.root / inventory_module.CONTRACT_PATH
+        contract = json.loads(target.read_text(encoding="utf-8"))
+        contract["capabilities"][0]["proof"] = ""
+        target.write_text(json.dumps(contract), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "GOV_PROOF_CRITERION_MISSING"):
+            inventory_module.inventory(self.root)
+
+    def test_rejects_missing_controller_spec(self):
+        (self.root / "docs/architecture/GOVERNANCE-CONTROLLER.md").unlink()
+        with self.assertRaisesRegex(ValueError, "GOV_TRACEABILITY_SOURCE_MISSING"):
+            inventory_module.inventory(self.root)
+
+    def test_rejects_missing_baseline_section(self):
+        (self.root / "docs/architecture/BASELINE.md").write_text("# no section 12", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "GOV_BASELINE_SCOPE_MISSING"):
+            inventory_module.inventory(self.root)
 
     def test_rejects_false_accepted_contract(self):
         target = self.root / inventory_module.CONTRACT_PATH
