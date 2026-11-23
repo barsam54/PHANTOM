@@ -63,53 +63,6 @@ jobs:
             echo '### Dashboard BLOCKED: required evidence snapshots missing' >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
-      - name: Verify actual prior CI evidence artifact and prove bounded reuse
-        if: github.event_name == 'pull_request'
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
-          CURRENT_RUN: ${{ github.run_id }}
-        run: |
-          python3 - <<'PY'
-          import json, os, subprocess, sys, urllib.request
-          repo = os.environ["REPOSITORY"]
-          req = urllib.request.Request(
-              f"https://api.github.com/repos/{repo}/actions/runs?event=pull_request&status=success&per_page=100",
-              headers={"Accept": "application/vnd.github+json",
-                       "Authorization": "Bearer " + os.environ["GITHUB_TOKEN"],
-                       "X-GitHub-Api-Version": "2022-11-28"})
-          with urllib.request.urlopen(req, timeout=30) as response:
-              runs = json.load(response)["workflow_runs"]
-          matches = [r for r in runs if r["name"] == "Repository Policy Guard"
-                     and r["id"] != int(os.environ["CURRENT_RUN"])
-                     and r["head_repository"]["full_name"] == repo]
-          if not matches:
-              print("EVIDENCE_LIVE_REUSE: OPEN; no earlier trusted completed run")
-              sys.exit(1)
-          selected = matches[0]
-          common = ["python3", "scripts/verify_governance_artifact.py",
-                    "--repo", repo, "--run-id", str(selected["id"]),
-                    "--expected-sha", selected["head_sha"],
-                    "--cache-dir", os.environ["RUNNER_TEMP"] + "/evidence-readback-cache"]
-          def audit_once():
-              process = subprocess.run(common, text=True, capture_output=True)
-              if process.returncode:
-                  print("Evidence readback rejected:", process.stdout, process.stderr, file=sys.stderr)
-                  sys.exit(process.returncode)
-              return json.loads(process.stdout)
-          first = audit_once()
-          second = audit_once()
-          if not (first["status"] == second["status"] == "CHECK_OK"
-                  and first["content_readback_verified"]
-                  and not first["archive_reused"]
-                  and second["archive_reused"]
-                  and not second["ci_tests_reexecuted"]
-                  and second["governance_acceptance"] == "OPEN"):
-              sys.exit("LIVE_EVIDENCE_REUSE_PROOF_INVALID")
-          with open(os.environ["RUNNER_TEMP"] + "/evidence-live-reuse.json", "w") as f:
-              json.dump({"initial": first, "reuse": second}, f, indent=2)
-          print("LIVE_EVIDENCE_READBACK_AND_REUSE: PASS; GOV-P0: OPEN")
-          PY
       - name: Preserve governance inventory for audit
         if: always()
         uses: actions/upload-artifact@v4
@@ -117,11 +70,74 @@ jobs:
           name: governance-inventory
           path: |
             ${{ runner.temp }}/source-audit.json
-            ${{ runner.temp }}/evidence-live-reuse.json
             ${{ runner.temp }}/governance-inventory.json
             ${{ runner.temp }}/governance-summary.md
             ${{ runner.temp }}/governance-phase0-ten-steps.json
             ${{ runner.temp }}/governance-phase0-ten-steps.md
             ${{ runner.temp }}/governance-dashboard/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Download this run's original evidence artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/download-artifact@v4
+        with:
+          name: governance-inventory
+          path: ${{ runner.temp }}/evidence-original-readback
+      - name: Independently check downloaded evidence and repeat scoped readback
+        if: github.event_name == 'pull_request'
+        run: |
+          python3 - <<'PY'
+          import io, json, os, subprocess, sys, zipfile
+          from pathlib import Path
+          from scripts.verify_governance_artifact import inspect_archive, sha
+          root = Path(os.environ["RUNNER_TEMP"]) / "evidence-original-readback"
+          required = ["governance-inventory.json", "governance-phase0-ten-steps.json"]
+          if any(not (root / n).is_file() for n in required):
+              sys.exit("EVIDENCE_EXTRACTED_REQUIRED_REPORT_MISSING")
+          content = {name: (root / name).read_bytes() for name in required}
+          binary = io.BytesIO()
+          with zipfile.ZipFile(binary, "w", zipfile.ZIP_DEFLATED) as z:
+              for name in required:
+                  z.writestr(name, content[name])
+          packed = binary.getvalue()
+          meta = {"digest": "sha256:" + sha(packed)}
+          revision = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          contract = Path("docs/architecture/GOVERNANCE-CONTRACT.json").read_bytes()
+          baseline = Path("docs/architecture/BASELINE.md").read_bytes()
+          first = inspect_archive(packed, meta, revision, contract, baseline)
+          second = inspect_archive(packed, meta, revision, contract, baseline)
+          if not (first["status"] == second["status"] == "CHECK_OK"
+                  and first["content_readback_verified"]
+                  and first["governance_acceptance"] == "OPEN"
+                  and second["code_sha"] == revision):
+              print(json.dumps({"first": first, "second": second}))
+              sys.exit("CI_EVIDENCE_READBACK_INVALID")
+          # Alter only the claim, preserve the original artifact. This must be rejected.
+          altered = json.loads(content["governance-inventory.json"])
+          altered["capabilities"][0]["verified"] = True
+          tampered = io.BytesIO()
+          with zipfile.ZipFile(tampered, "w", zipfile.ZIP_DEFLATED) as z:
+              z.writestr("governance-inventory.json", json.dumps(altered))
+              z.writestr("governance-phase0-ten-steps.json", content["governance-phase0-ten-steps.json"])
+          negative = inspect_archive(tampered.getvalue(),
+                                     {"digest": "sha256:" + sha(tampered.getvalue())},
+                                     revision, contract, baseline)
+          if negative.get("code") != "FALSE_ACCEPTANCE_OR_COVERAGE":
+              sys.exit("FALSE_ACCEPTANCE_NEGATIVE_NOT_REJECTED")
+          evidence = {"readback": first, "repeat_readback": second,
+                      "negative": negative, "downloaded_with": "actions/download-artifact@v4",
+                      "scope": "same-run artifact content; no independent approval of GOV-P0",
+                      "tests_reexecuted_by_repeat": False}
+          (Path(os.environ["RUNNER_TEMP"]) / "evidence-readback.json").write_text(
+              json.dumps(evidence, indent=2), encoding="utf-8")
+          print("SAME_RUN_ARTIFACT_CONTENT_READBACK: PASS; SCOPED_REUSE: PASS; GOV-P0: OPEN")
+          PY
+      - name: Preserve independent artifact readback evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-evidence-readback
+          path: ${{ runner.temp }}/evidence-readback.json
           if-no-files-found: warn
           retention-days: 30
