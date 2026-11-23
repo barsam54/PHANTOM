@@ -23,15 +23,22 @@ public static class GovernancePhaseWorkflow
         string Step, string Status, string Code, string Reason,
         string Action, string Evidence, string Resume);
 
+    /// <summary>Untrusted model output is recorded by digest only and never grants authority.</summary>
+    public sealed record ProposalSubmission(string Text, string BaseRevision, string Origin);
+
+    public sealed record ProposalReceipt(string Sha256, string BaseRevision, string Origin);
+
     public sealed record Report(
         string RepositoryRoot, string Revision, string Gate,
-        string Acceptance, IReadOnlyList<StepDecision> Steps)
+        string Acceptance, IReadOnlyList<StepDecision> Steps,
+        ProposalReceipt? Proposal = null)
     {
         public bool Accepted => Acceptance == "PASS";
     }
 
     public static async Task<Report> RunAsync(
-        string repositoryRoot, string revision, CancellationToken cancellationToken = default)
+        string repositoryRoot, string revision, CancellationToken cancellationToken = default,
+        ProposalSubmission? untrustedProposal = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
         ArgumentException.ThrowIfNullOrWhiteSpace(revision);
@@ -64,8 +71,25 @@ public static class GovernancePhaseWorkflow
         builder.AddEdge(acceptance, publish);
         builder.AddEdge(publish, checkpoint).WithOutputFrom(checkpoint);
 
+        // A caller-supplied proposal is never executable authority.
+        // Keep only the hash/declared source in the workflow state and event stream.
+        ProposalReceipt? receipt = null;
+        if (untrustedProposal is not null)
+        {
+            if (string.IsNullOrWhiteSpace(untrustedProposal.Text) ||
+                untrustedProposal.Text.Length > 16_000 ||
+                string.IsNullOrWhiteSpace(untrustedProposal.Origin) ||
+                untrustedProposal.Origin.Length > 100 ||
+                string.IsNullOrWhiteSpace(untrustedProposal.BaseRevision))
+                throw new ArgumentException(
+                    "GOV_PROPOSAL_INVALID: proposal, origin and source revision are required and bounded.",
+                    nameof(untrustedProposal));
+            receipt = new ProposalReceipt(
+                Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(untrustedProposal.Text))),
+                untrustedProposal.BaseRevision, untrustedProposal.Origin);
+        }
         Report start = new(repositoryRoot, revision, "GOV-P0", "OPEN",
-            Array.Empty<StepDecision>());
+            Array.Empty<StepDecision>(), receipt);
         await using Run run = await InProcessExecution.RunAsync(builder.Build(), start);
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -142,16 +166,31 @@ public static class GovernancePhaseWorkflow
             "Create a stage-scoped plan with evidence, impact targets and rollback reference.",
             "docs/architecture/GOVERNANCE-CONTRACT.json", "authorized_execute");
 
-    private static Report AuthorizedExecute(Report state) =>
-        state.Steps.Any(step => step.Status == "BLOCKED")
-            ? Add(state, "authorized_execute", "SKIPPED", "GOV_UPSTREAM_BLOCKED",
+    private static Report AuthorizedExecute(Report state)
+    {
+        if (state.Steps.Any(step => step.Status == "BLOCKED"))
+            return Add(state, "authorized_execute", "SKIPPED", "GOV_UPSTREAM_BLOCKED",
                 "A prerequisite was refused; no change may execute while it remains unresolved.",
                 "Repair the first blocking prerequisite, rerun preflight and resume from the specified step.",
-                "docs/architecture/GOVERNANCE-CONTRACT.json", "discover")
-            : Add(state, "authorized_execute", "NOT_IMPLEMENTED", "GOV_WORKER_UNAVAILABLE",
+                "docs/architecture/GOVERNANCE-CONTRACT.json", "discover");
+
+        if (state.Proposal is not null)
+        {
+            if (!string.Equals(state.Proposal.BaseRevision, state.Revision, StringComparison.Ordinal))
+                return Add(state, "authorized_execute", "BLOCKED", "GOV_PROPOSAL_REVISION_MISMATCH",
+                    "Untrusted model proposal refers to a different code revision.",
+                    "Regenerate and review the proposal against the immutable current source revision.",
+                    "sha256:" + state.Proposal.Sha256, "authorized_execute");
+            return Add(state, "authorized_execute", "REVIEW_REQUIRED", "GOV_UNTRUSTED_PROPOSAL_RECORDED",
+                "Model suggestion is recorded by digest, not validated, authorized or executed.",
+                "Independently review sources, scope, risk, expected impact and recovery before any write-capable worker.",
+                "sha256:" + state.Proposal.Sha256, "authorized_execute");
+        }
+        return Add(state, "authorized_execute", "NOT_IMPLEMENTED", "GOV_WORKER_UNAVAILABLE",
             "No independently qualified low-privilege coding worker is connected.",
             "Connect and test a bounded worker on an isolated branch before enabling modifications.",
             "docs/architecture/GOVERNANCE-CONTROLLER.md", "authorized_execute");
+    }
 
     private static Report BuildAndTests(Report state) =>
         Add(state, "build_and_tests", "NOT_EXECUTED", "GOV_PHASE_TESTS_NOT_EXECUTED",
