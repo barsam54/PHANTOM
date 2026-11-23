@@ -1,0 +1,1 @@
+TEST ONLY: This intentionally unapproved root-level file must be rejected by the existing repository policy check. Do not merge this test PR.
