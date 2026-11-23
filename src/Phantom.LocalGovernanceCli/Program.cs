@@ -1,4 +1,6 @@
 using Phantom.AgentFramework;
+using System.Diagnostics;
+using System.Text.Json;
 
 const string profile = "infra/local-models/ollama-qwen3-4b.json";
 try
@@ -11,23 +13,47 @@ try
         return 0;
     }
 
-    if (args.Length != 1 || args[0] != "--propose")
+    if (args.Length != 1 || args[0] is not
+        ("--propose" or "--propose-workflow" or "--probe-workflow"))
     {
-        Console.Error.WriteLine("Usage: --check-profile | --propose < issue-description.txt");
+        Console.Error.WriteLine(
+            "Usage: --check-profile | --propose | --propose-workflow | --probe-workflow");
         return 2;
     }
 
-    string issue = await Console.In.ReadToEndAsync();
+    // --probe-workflow only tests the deterministic handoff, without running
+    // inference or pretending the generated text came from qwen3:4b.
+    string issue = args[0] == "--probe-workflow"
+        ? "Test-only synthetic proposal (NO MODEL INFERENCE)"
+        : await Console.In.ReadToEndAsync();
     if (string.IsNullOrWhiteSpace(issue))
     {
         Console.Error.WriteLine("GOV_INPUT_MISSING: a nonempty issue is required on stdin.");
         return 2;
     }
 
-    string proposal = await GovernanceLocalProposalAgent.ProposeAsync(config, issue);
-    Console.WriteLine("UNVERIFIED_MODEL_PROPOSAL; NOT_ACCEPTANCE; NO_FILES_CHANGED");
-    Console.WriteLine(proposal);
-    return 0;
+    string proposal = args[0] == "--probe-workflow"
+        ? issue
+        : await GovernanceLocalProposalAgent.ProposeAsync(config, issue);
+
+    if (args[0] == "--propose")
+    {
+        Console.WriteLine("UNVERIFIED_MODEL_PROPOSAL; NOT_ACCEPTANCE; NO_FILES_CHANGED");
+        Console.WriteLine(proposal);
+        return 0;
+    }
+
+    string sha = GetCleanRepositoryRevision(root);
+    var handoff = new GovernancePhaseWorkflow.ProposalSubmission(
+        proposal, sha, args[0] == "--probe-workflow"
+            ? "test:synthetic-no-inference"
+            : "ollama:qwen3:4b");
+    var report = await GovernancePhaseWorkflow.RunAsync(
+        root, sha, untrustedProposal: handoff);
+    Console.WriteLine(JsonSerializer.Serialize(report,
+        new JsonSerializerOptions { WriteIndented = true }));
+    // 0 = diagnostic pipeline executed, NEVER automatic authorization.
+    return report.Accepted ? 2 : 0;
 }
 catch (Exception ex)
 {
@@ -46,4 +72,42 @@ static string FindRepositoryRoot()
         directory = directory.Parent;
     }
     throw new InvalidOperationException("Run the CLI from within the PHANTOM repository.");
+}
+
+static string GetCleanRepositoryRevision(string root)
+{
+    static string Git(string root, string command)
+    {
+        using var process = new Process
+        {
+            StartInfo = new ProcessStartInfo("git")
+            {
+                WorkingDirectory = root,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            }
+        };
+        process.StartInfo.ArgumentList.Add(command);
+        if (command == "rev-parse")
+            process.StartInfo.ArgumentList.Add("HEAD");
+        else if (command == "status")
+            process.StartInfo.ArgumentList.Add("--porcelain");
+        if (!process.Start())
+            throw new InvalidOperationException("Unable to start Git.");
+        string stdout = process.StandardOutput.ReadToEnd();
+        string stderr = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        if (process.ExitCode != 0)
+            throw new InvalidOperationException("GOV_GIT_UNAVAILABLE: " + stderr.Trim());
+        return stdout.Trim();
+    }
+
+    if (!string.IsNullOrEmpty(Git(root, "status")))
+        throw new InvalidOperationException(
+            "GOV_UNCOMMITTED_SOURCE: proposals require a clean checkout at an immutable SHA.");
+    string sha = Git(root, "rev-parse");
+    if (sha.Length != 40 || !sha.All(Uri.IsHexDigit))
+        throw new InvalidOperationException("GOV_REVISION_INVALID: expected full Git SHA-1 commit ID.");
+    return sha;
 }
