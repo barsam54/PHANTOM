@@ -1,9 +1,11 @@
-# PHANTOM | Optional local Ollama model (qwen3:4b)
+# PHANTOM | Archived optional local Ollama model profile (qwen3:4b)
 
-Status: **PROFILE VERSIONED; LOCAL RUNTIME / INFERENCE NOT VERIFIED BY GITHUB CI**.
+Status: **ARCHIVED PROFILE; HOST MODEL REMOVED; NO APPROVED LOCAL INFERENCE MODEL**. GitHub CI does not run host inference.
+
+Host evidence: `docs/evidence/2026-11-23-host-ollama-inference-removal.md` records CPU-only successful token generation, failed final-answer quality, removal of `qwen3:4b` and zero installed models at the observed time. The profile remains disabled and does not imply current installation.
 
 ## Why this is recorded
-The machine `mohsen-nexora` reported successful execution of `ollama pull qwen3:4b` (user-provided terminal result). The downloaded model is **already on the host**. Git contains only a small optional configuration, bootstrap checks and documentation; **not the 2.5 GB model, Ollama executable or runtime cache**.
+The host previously downloaded `qwen3:4b`, but the user has since removed it. The latest terminal report shows `ollama list` empty and only `20K` remaining under `~/.ollama/models`. **The model is no longer installed.** Git contains only a small optional configuration, bootstrap checks and documentation; **not the 2.5 GB model, Ollama executable or runtime cache**.
 
 Versioned profile: `infra/local-models/ollama-qwen3-4b.json`. This model may later be evaluated as an **optional** local development coding-worker candidate. It has no approval to modify code, certify its own work, use research SML evidence, bypass governance, or replace Microsoft Agent Framework orchestration.
 
@@ -28,7 +30,7 @@ The optional CLI is at `src/Phantom.LocalGovernanceCli/`. Run from a PHANTOM che
 - Offline configuration check (safe in CI): `dotnet run --project src/Phantom.LocalGovernanceCli -- --check-profile`
 - Opt-in localhost model invocation: `printf 'Describe an observed code problem, without secrets' | dotnet run --project src/Phantom.LocalGovernanceCli -- --propose`
 
-The second command only works on a host running Ollama with `qwen3:4b`. It produces a textual, unverified proposal and **does not change code or run a ten-stage phase**. Local inference has not been verified by CI. The repository's official-source decision record is `docs/architecture/SOURCE-FIRST-DECISION.json`.
+The second command **cannot currently succeed as configured**, because `qwen3:4b` has been removed. Do not run it or re-download a model implicitly. It only works after explicit authorization, installation, and separate acceptance of a suitable model. It produces a textual, unverified proposal and **does not change code or run a ten-stage phase**. Local inference has not been verified by CI. The repository's official-source decision record is `docs/architecture/SOURCE-FIRST-DECISION.json`.
 
 Microsoft vendor reference: https://learn.microsoft.com/en-us/agent-framework/agents/providers/ollama
 
@@ -40,6 +42,7 @@ Microsoft vendor reference: https://learn.microsoft.com/en-us/agent-framework/ag
 
 ## Acceptance limits
 - Versioned profile and CI offline tests: checked by repo policy.
-- Host model-present check: **NOT PERFORMED** in this PR.
-- Local inference quality and integration with Microsoft Agent Framework: **NOT IMPLEMENTED**.
+- User-observed host model availability: **ZERO installed models after removal**; GitHub CI has no direct host access.
+- CPU token generation on removed Qwen3 model: **OBSERVED**, but bounded final-response evaluation: **FAIL**.
+- Model-backed Microsoft Agent Framework integration acceptance: **OPEN**; no model candidate approved.
 - `GOV-P0`: remains **OPEN**.
