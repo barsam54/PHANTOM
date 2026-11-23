@@ -10,7 +10,7 @@ import json
 import os
 from pathlib import Path
 import sys
-from zipfile import ZipFile, ZIP_DEFLATED
+from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 
 from verify_governance_artifact import (
     CONTRACT, BASELINE, MAX_ZIP, REPO, SHA, DIGEST, denial, fetch,
@@ -73,7 +73,11 @@ def verify_extracted(repo, run_id, expected_head, directory, *, read=fetch, toke
     buffer = io.BytesIO()
     with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
         for name in FILES:
-            archive.writestr(name, content[name])
+            entry = ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            entry.compress_type = ZIP_DEFLATED
+            entry.create_system = 3
+            entry.external_attr = 0o600 << 16
+            archive.writestr(entry, content[name])
     payload = buffer.getvalue()
     # The newly repacked ZIP is NOT the original GitHub artifact archive.
     # Authenticity of extracted files is delegated to actions/download-artifact.
