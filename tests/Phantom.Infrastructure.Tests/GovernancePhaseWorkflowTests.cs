@@ -130,6 +130,36 @@ public sealed class GovernancePhaseWorkflowTests
                 FindRepositoryRoot(), new string('a', 40), untrustedProposal: proposal));
     }
 
+    [TestMethod]
+    public async Task TenStageWorkflowPersistsOfficialMicrosoftCheckpointsOnDisk()
+    {
+        string root = FindRepositoryRoot();
+        string directory = Path.Combine(Path.GetTempPath(),
+            "phantom-governance-checkpoint-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            int count = await GovernancePhaseWorkflow.RunWithDiskCheckpointsAsync(
+                root, new string('a', 40), directory);
+            Assert.IsGreaterThan(0, count);
+            Assert.IsTrue(Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories).Any(),
+                "The official filesystem store must contain checkpoint artifacts.");
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+                Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public async Task RejectsCheckpointStorageInsideSourceTree()
+    {
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() =>
+            GovernancePhaseWorkflow.RunWithDiskCheckpointsAsync(
+                FindRepositoryRoot(), new string('a', 40),
+                Path.Combine(FindRepositoryRoot(), "obj", "unsafe-checkpoints")));
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
