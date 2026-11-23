@@ -13,6 +13,21 @@ try
         return 0;
     }
 
+    if (args.Length == 2 &&
+        args[0] is "--checkpoint-capture" or "--checkpoint-resume")
+    {
+        string sha = GetCleanRepositoryRevision(root);
+        int count = args[0] == "--checkpoint-capture"
+            ? await GovernancePhaseWorkflow.RunWithDiskCheckpointsAsync(
+                root, sha, args[1])
+            : await GovernancePhaseWorkflow.ResumeFromDiskCheckpointsAsync(
+                args[1], sha);
+        Console.WriteLine(args[0] == "--checkpoint-capture"
+            ? $"GOV_CHECKPOINTS_CAPTURED={count}; PHASE=OPEN"
+            : $"GOV_CHECKPOINT_RESUMED_STEPS={count}; PHASE=OPEN");
+        return count > 0 ? 0 : 2;
+    }
+
     if (args.Length != 1 || args[0] is not
         ("--propose" or "--propose-workflow" or "--probe-workflow"))
     {
