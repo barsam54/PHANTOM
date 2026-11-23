@@ -74,6 +74,13 @@ class GovernanceInventoryTests(unittest.TestCase):
         self.assertIn("Projects synchronized: NO", text)
         self.assertIn("Protected-main historical evidence", text)
         self.assertIn("Direct push denial tested: NO", text)
+        self.assertIn("Verified capability acceptance: 0 / 6 (0%)", text)
+        self.assertIn("░░░░░░", text)
+        self.assertIn("1. Dashboard", text)
+        self.assertIn("6. Impact / rollback", text)
+        self.assertIn("Remaining blockers", text)
+        self.assertIn("Current ruleset validated in this run: **NO**", text)
+        self.assertIn("GOV-P0 remains **OPEN**", text)
 
 
 if __name__ == "__main__":
