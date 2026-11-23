@@ -46,6 +46,57 @@ public sealed class GovernancePhaseWorkflowTests
         Assert.IsFalse(report.Accepted);
     }
 
+    private static GovernancePhaseWorkflow.EvidenceSubmission EvidenceFor(string root, string revision) =>
+        new("phantom.governance.evidence-pipeline.v1", "VERIFIED_SCOPE_ONLY",
+            revision,
+            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+                File.ReadAllBytes(Path.Combine(root, "docs/architecture/GOVERNANCE-CONTRACT.json")))).ToLowerInvariant(),
+            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+                File.ReadAllBytes(Path.Combine(root, "docs/architecture/BASELINE.md")))).ToLowerInvariant(),
+            "GOV-P0", "BLOCKED", 6, 2, 0, false, "OPEN");
+
+    [TestMethod]
+    public async Task BoundScopedReportReachesActualMicrosoftEvidenceExecutorWithoutAcceptingPhase()
+    {
+        string root = FindRepositoryRoot();
+        string revision = new string('3', 40);
+        var report = await GovernancePhaseWorkflow.RunAsync(
+            root, revision, externalEvidence: EvidenceFor(root, revision));
+        Assert.AreEqual("SCOPED_ONLY", report.Steps[6].Status);
+        Assert.AreEqual("GOV_HISTORICAL_CI_RECEIPT_CONSUMED", report.Steps[6].Code);
+        Assert.AreEqual("BLOCKED", report.Steps[7].Status);
+        Assert.IsFalse(report.Accepted);
+    }
+
+    [TestMethod]
+    public async Task ForeignCheckoutOrFakePhaseCompletionCannotBeConsumed()
+    {
+        string root = FindRepositoryRoot();
+        string revision = new string('3', 40);
+        var evidence = EvidenceFor(root, revision);
+        var foreign = await GovernancePhaseWorkflow.RunAsync(
+            root, revision, externalEvidence: evidence with { SourceSha = new string('4', 40) });
+        Assert.AreEqual("GOV_EVIDENCE_BINDING_INVALID", foreign.Steps[6].Code);
+        var forged = await GovernancePhaseWorkflow.RunAsync(
+            root, revision, externalEvidence: evidence with {
+                CurrentPhaseCriteriaVerified = 6,
+                PhaseEvidenceVerificationCompleted = true,
+                GovernanceAcceptance = "PASS" });
+        Assert.AreEqual("BLOCKED", forged.Steps[6].Status);
+        Assert.AreEqual("OPEN", forged.Acceptance);
+    }
+
+    [TestMethod]
+    public async Task ModifiedContractDigestCannotBypassEvidenceBinding()
+    {
+        string root = FindRepositoryRoot();
+        string revision = new string('3', 40);
+        var evidence = EvidenceFor(root, revision) with { ContractSha256 = new string('0', 64) };
+        var report = await GovernancePhaseWorkflow.RunAsync(
+            root, revision, externalEvidence: evidence);
+        Assert.AreEqual("GOV_EVIDENCE_BINDING_INVALID", report.Steps[6].Code);
+    }
+
     [TestMethod]
     public async Task MissingBaselineIsReportedButCannotSelfCertify()
     {
