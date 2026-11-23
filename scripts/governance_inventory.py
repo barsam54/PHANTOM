@@ -62,10 +62,20 @@ def inventory(root=ROOT):
         "historical_evidence_verified": False,
         "dashboard": {"type": "GitHub Actions step summary",
                       "is_acceptance_authority": False, "projects_synced": False},
+        "merge_barrier_history": {
+            "observation": "NEGATIVE_REQUIRED_CHECK_BLOCKED",
+            "evidence": "docs/evidence/2026-11-23-required-check-negative-pr.md",
+            "test_pr": 2,
+            "policy_run": 45097741706,
+            "current_ruleset_revalidated": False,
+            "direct_push_rejection_tested": False,
+            "verified": False,
+            "reason": "Historical GitHub API observation only; not live ruleset verification or full GOV-P0 acceptance"
+        },
         "remaining": ["durable governance phase execution", "evidence provenance and acceptance",
                       "bounded authorized worker", "forced failure/resume",
                       "automatic PR publication", "GitHub Projects synchronization",
-                      "enforced merge barrier"]
+                      "periodic ruleset readback and untested direct-push denial"]
     }
 
 
@@ -84,7 +94,13 @@ def markdown(report):
                   "## Stage filename hints (NOT an acceptance conclusion)"])
     for gate, hints in report["stage_filename_hints_unverified"].items():
         lines.append("- " + gate + ": " + str(len(hints)) + " file name matches")
-    lines.extend(["", "GitHub Projects synchronized: NO.", ""])
+    barrier = report["merge_barrier_history"]
+    lines.extend(["", "## Protected-main historical evidence (not a live check)",
+                  "Required-check failure observed blocking non-draft test PR #" +
+                  str(barrier["test_pr"]) + " in run " + str(barrier["policy_run"]) +
+                  ". Evidence: `" + barrier["evidence"] + "`.",
+                  "Current ruleset revalidated by this job: NO. Direct push denial tested: NO.",
+                  "", "GitHub Projects synchronized: NO.", ""])
     return "\n".join(lines)
 
 
