@@ -183,8 +183,8 @@ jobs:
               sys.exit("NO_PREVIOUS_TRUSTED_SUCCESSFUL_PR_RUN")
           prior = eligible[0]
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write("run_id=" + str(prior["id"]) + "\\n")
-              output.write("head_sha=" + prior["head_sha"] + "\\n")
+              output.write("run_id=" + str(prior["id"]) + "\n")
+              output.write("head_sha=" + prior["head_sha"] + "\n")
           print("PRIOR_EVIDENCE_SELECTED:", prior["id"], prior["head_sha"])
           PY
       - name: Download evidence from an independent earlier CI run
@@ -224,13 +224,13 @@ jobs:
           assert reused["current_revision_acceptance"] == "NOT_ASSESSED"
           assert reused["governance_acceptance"] == "OPEN"
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as s:
-              s.write("\\n### Historical independent-run evidence\\n")
-              s.write("- Earlier run: " + str(reused["historical_run_id"]) + "\\n")
-              s.write("- Original head SHA: " + reused["historical_pr_head_sha"] + "\\n")
-              s.write("- Verified checkout SHA: " + reused["historical_checkout_sha"] + "\\n")
-              s.write("- Readback and reuse without re-running tests: **PASS**.\\n")
-              s.write("- Historical artifact transport: official download action.\\n")
-              s.write("- Current revision acceptance: **NOT ASSESSED**; GOV-P0: **OPEN**.\\n")
+              s.write("\n### Historical independent-run evidence\n")
+              s.write("- Earlier run: " + str(reused["historical_run_id"]) + "\n")
+              s.write("- Original head SHA: " + reused["historical_pr_head_sha"] + "\n")
+              s.write("- Verified checkout SHA: " + reused["historical_checkout_sha"] + "\n")
+              s.write("- Readback and reuse without re-running tests: **PASS**.\n")
+              s.write("- Historical artifact transport: official download action.\n")
+              s.write("- Current revision acceptance: **NOT ASSESSED**; GOV-P0: **OPEN**.\n")
           print("CROSS_RUN_PROVENANCE_CONTENT_AND_REUSE: PASS; GOV-P0: OPEN")
           PY
       - name: Persist independent cross-run evidence report
