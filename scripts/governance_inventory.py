@@ -9,6 +9,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = Path("docs/architecture/GOVERNANCE-CONTRACT.json")
 GATES = ("SML-01", "SML-02", "SML-03", "SML-04", "SML-05", "SML-06")
+CAPABILITY_IDS = ("dashboard", "evidence", "end_to_end", "enforcement",
+                  "baseline_review", "impact_rollback")
 
 
 def digest(path):
@@ -29,6 +31,24 @@ def inventory(root=ROOT):
         raise ValueError("GOV_CONTRACT_INVALID: gate must be GOV-P0")
     if contract.get("status") != "OPEN":
         raise ValueError("GOV_PREMATURE_ACCEPTANCE: full integration proof not recorded")
+    caps = contract.get("capabilities")
+    if not isinstance(caps, list) or len(caps) != len(CAPABILITY_IDS):
+        raise ValueError("GOV_CAPABILITY_COVERAGE_INVALID: exactly six capabilities required")
+    ids = [cap.get("id") for cap in caps if isinstance(cap, dict)]
+    if len(ids) != len(CAPABILITY_IDS) or set(ids) != set(CAPABILITY_IDS):
+        raise ValueError("GOV_CAPABILITY_COVERAGE_INVALID: missing/duplicate/unknown capability")
+    for cap in caps:
+        if cap.get("state") != "OPEN":
+            raise ValueError("GOV_UNVERIFIED_CAPABILITY: acceptance proof is not independently verified")
+        if not isinstance(cap.get("proof"), str) or not cap["proof"].strip():
+            raise ValueError("GOV_PROOF_CRITERION_MISSING: acceptance criterion must be declared")
+    baseline_path = root / contract["baseline"]
+    controller_path = root / contract["controller_spec"]
+    if not baseline_path.is_file() or not controller_path.is_file():
+        raise ValueError("GOV_TRACEABILITY_SOURCE_MISSING: baseline or controller spec absent")
+    baseline_text = baseline_path.read_text(encoding="utf-8")
+    if "## 12. P0" not in baseline_text:
+        raise ValueError("GOV_BASELINE_SCOPE_MISSING: section 12 not found")
     evidence_dir = root / "docs/evidence"
     evidence_files = sorted(evidence_dir.glob("*.md")) if evidence_dir.is_dir() else []
     hints = {
@@ -49,6 +69,15 @@ def inventory(root=ROOT):
              "verified": False, "next_proof": cap["proof"]}
             for cap in contract["capabilities"]
         ],
+        "traceability": {
+            "authority": "versioned baseline + contract; not the inventory renderer",
+            "baseline": contract["baseline"],
+            "controller_spec": contract["controller_spec"],
+            "coverage": "SIX_CONTRACT_CRITERIA_PRESENT_NOT_VERIFIED",
+            "unverified_acceptance_count": len(caps),
+            "source_integrity_checked": True,
+            "execution_provenance_verified": False,
+        },
         "historical_evidence_files_found": len(evidence_files),
         "evidence_integrity_inventory": [
             {"path": p.relative_to(root).as_posix(),
@@ -123,6 +152,8 @@ def markdown(report):
         "- Contract: `" + report["contract_path"] + "`",
         "- Contract SHA-256: `" + report["contract_digest_sha256"] + "`",
         "- Baseline SHA-256: `" + report["baseline_digest_sha256"] + "`",
+        "- Traceability criteria: **6 / 6 declared, 0 independently accepted**.",
+        "- Baseline/spec files and section 12 present: **YES**; execution provenance verified: **NO**.",
         "- Historical evidence files found: **" +
             str(report["historical_evidence_files_found"]) +
             "**; independently verified by this job: **NO**.",
