@@ -4,6 +4,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_ROOT_FILES = {
@@ -182,6 +183,85 @@ def check_governance_contract(root=ROOT):
     return errors
 
 
+SOURCE_DECISION_FILE = "docs/architecture/SOURCE-FIRST-DECISION.json"
+SOURCE_REQUIRED_FIELDS = {
+    "decision_id", "scope", "problem", "baseline_ref", "candidate_solutions",
+    "chosen_option", "why_existing_solution_is_insufficient", "official_sources",
+    "evaluation_method", "expected_impact", "rollback_risk", "status"
+}
+SOURCE_REFERENCE_FIELDS = {
+    "provider", "url", "applies_to", "reviewed_version", "verification"
+}
+
+
+def check_source_first_decision(root=ROOT):
+    """Bootstrap integrity gate, NOT validation that vendor docs are accurate."""
+    target = root / SOURCE_DECISION_FILE
+    if not target.is_file():
+        return [governance_denial(
+            "GOV_SOURCE_DECISION_MISSING",
+            "Source-first decision record is missing",
+            "Register the official-source/reuse review before approving architecture",
+            [SOURCE_DECISION_FILE])]
+    try:
+        record = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
+        return [governance_denial(
+            "GOV_SOURCE_DECISION_INVALID_JSON", f"Source decision is unreadable: {exc}",
+            "Repair the JSON and rerun governance admission",
+            [SOURCE_DECISION_FILE])]
+    if not isinstance(record, dict):
+        return [governance_denial(
+            "GOV_SOURCE_DECISION_INVALID", "Source decision must be a JSON object",
+            "Restore the approved structured decision format",
+            [SOURCE_DECISION_FILE])]
+    errors = []
+    for field in SOURCE_REQUIRED_FIELDS:
+        value = record.get(field)
+        if value is None or value == "" or value == []:
+            errors.append(governance_denial(
+                "GOV_SOURCE_FIELD_MISSING", f"Decision field {field} is required",
+                "Record review evidence and an explicit comparison before proceeding",
+                [SOURCE_DECISION_FILE]))
+    choices = record.get("candidate_solutions")
+    if not isinstance(choices, list) or len(choices) < 2 or any(
+        not isinstance(item, dict) or not all(item.get(k) for k in
+        ("id", "kind", "reference", "outcome", "reason"))
+        for item in choices
+    ):
+        errors.append(governance_denial(
+            "GOV_REUSE_COMPARISON_MISSING",
+            "At least two explicit reuse/extend/build options with reasons are required",
+            "Compare existing supported solutions against any proposed new implementation",
+            [SOURCE_DECISION_FILE]))
+    elif record.get("chosen_option") not in {x["id"] for x in choices}:
+        errors.append(governance_denial(
+            "GOV_SOURCE_CHOICE_UNREFERENCED", "Selected option does not exist in the comparison",
+            "Select an explicitly assessed candidate option", [SOURCE_DECISION_FILE]))
+    sources = record.get("official_sources")
+    permitted_hosts = {"learn.microsoft.com", "docs.github.com"}
+    if not isinstance(sources, list) or not sources or any(
+        not isinstance(item, dict) or not SOURCE_REFERENCE_FIELDS.issubset(item)
+        or any(not isinstance(item.get(key), str) or not item[key].strip()
+               for key in SOURCE_REFERENCE_FIELDS)
+        or urlparse(item["url"]).scheme != "https"
+        or urlparse(item["url"]).hostname not in permitted_hosts
+        for item in sources
+    ):
+        errors.append(governance_denial(
+            "GOV_OFFICIAL_SOURCE_INVALID",
+            "Source reference must include a verified-scope official HTTPS URL, applicable version and evidence",
+            "Cite vendor primary documentation and record version-specific verification",
+            [SOURCE_DECISION_FILE]))
+    if record.get("status") not in {"PROPOSED", "EVIDENCE_REVIEWED", "APPROVED"}:
+        errors.append(governance_denial(
+            "GOV_SOURCE_STATUS_INVALID",
+            "Source review status is unknown",
+            "Use PROPOSED, EVIDENCE_REVIEWED, or separately approved APPROVED",
+            [SOURCE_DECISION_FILE]))
+    return errors
+
+
 def main():
     try:
         paths = tracked_files()
@@ -193,6 +273,7 @@ def main():
         for path in paths for code, reason in check_path(path)
     ]
     violations.extend(check_governance_contract())
+    violations.extend(check_source_first_decision())
     report = {"status": "FAIL" if violations else "PASS", "checked_files": len(paths), "violations": violations}
     print(json.dumps(report, indent=2, ensure_ascii=False))
     if violations:
