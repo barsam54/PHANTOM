@@ -21,7 +21,7 @@ RECORD = ROOT / "docs/architecture/SOURCE-FIRST-DECISION.json"
 CONTRACT = ROOT / "docs/architecture/GOVERNANCE-CONTRACT.json"
 MAX_PAGE_BYTES = 2_000_000
 MAX_ASSERTIONS_PER_SOURCE = 12
-PATTERN = re.compile(r"^[\w][\w\s.\-/:()]{2,119}$", re.UNICODE)
+PATTERN = re.compile(r"^[\w][\w .\-/:()]{2,119}$", re.UNICODE)
 
 
 class VisibleText(HTMLParser):
