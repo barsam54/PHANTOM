@@ -267,8 +267,8 @@ jobs:
           if selected is None:
               sys.exit("NO_PRIOR_DOTNET_EVIDENCE_ARTIFACT")
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
-              f.write("run_id=" + str(selected["id"]) + "\\n")
-              f.write("head_sha=" + selected["head_sha"] + "\\n")
+              f.write("run_id=" + str(selected["id"]) + "\n")
+              f.write("head_sha=" + selected["head_sha"] + "\n")
           print("PRIOR_DOTNET_RUN_SELECTED", selected["id"], selected["head_sha"])
           PY
       - name: Download historical .NET evidence from independent run
@@ -302,10 +302,10 @@ jobs:
           assert d["current_revision_acceptance"] == "NOT_ASSESSED"
           assert d["governance_acceptance"] == "OPEN"
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
-              f.write("\\n### Independent prior .NET evidence\\n")
-              f.write("- Prior run: " + str(d["historical_run_id"]) + "\\n")
-              f.write("- Pinned test log: " + d["test_log_sha256"] + "\\n")
-              f.write("- Historical run/reuse: **CHECK_OK**. Current stage acceptance: **OPEN**.\\n")
+              f.write("\n### Independent prior .NET evidence\n")
+              f.write("- Prior run: " + str(d["historical_run_id"]) + "\n")
+              f.write("- Pinned test log: " + d["test_log_sha256"] + "\n")
+              f.write("- Historical run/reuse: **CHECK_OK**. Current stage acceptance: **OPEN**.\n")
           print("CROSS_RUN_DOTNET_TEST_LOG_REUSE: PASS; GOVERNANCE: OPEN")
           PY
       - name: Preserve historical .NET evidence readback
