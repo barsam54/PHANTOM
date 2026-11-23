@@ -4,7 +4,7 @@
   "gate": "GOV-P0",
   "baseline": "docs/architecture/BASELINE.md",
   "controller_spec": "docs/architecture/GOVERNANCE-CONTROLLER.md",
-  "orchestrator": "Microsoft Agent Framework C# (planned, not implemented)",
+  "orchestrator": "Microsoft Agent Framework C# (diagnostic ten-stage runtime exists; phase executor and acceptance OPEN)",
   "ci": ".github/workflows/repository-policy.yml",
   "capabilities": [
     {
@@ -169,5 +169,34 @@
       "APPROVED"
     ],
     "no_automatic_baseline_approval": true
+  },
+  "evidence_handoff": {
+    "schema_version": "phantom.governance.evidence-pipeline.v1",
+    "owner": "Microsoft Agent Framework GovEvidence executor",
+    "producer": "scripts/governance_evidence_pipeline.py (CI verification adapter; not approval)",
+    "binding": [
+      "source_sha",
+      "contract_sha256",
+      "baseline_sha256",
+      "contract_gate"
+    ],
+    "scoped_status": "VERIFIED_SCOPE_ONLY",
+    "verified_scope": "two historical CI criteria only, not current-phase acceptance",
+    "invalid_or_missing": "BLOCKED",
+    "allowed_workflow_evidence_state": "SCOPED_ONLY",
+    "stage_acceptance_requires": "independent current-phase coverage, authorized run, impact/rollback, recovery, publication and approval",
+    "acceptance_when_scoped_only": "OPEN",
+    "prohibited": [
+      "accept historical CI as current phase",
+      "accept unverified self-reported PASS",
+      "skip phase-specific positive and negative acceptance tests"
+    ]
+  },
+  "acceptance_layers": {
+    "criterion": "verified for exact criterion, source and environment",
+    "capability": "all mandatory capability evidence linked to actual authorized workflow",
+    "gate": "full single-phase integration per unchanged Baseline section 12",
+    "unverified": "OPEN",
+    "no_automatic_promotion": true
   }
 }
