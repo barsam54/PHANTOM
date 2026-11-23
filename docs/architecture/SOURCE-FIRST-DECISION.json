@@ -9,6 +9,7 @@
     "docs/architecture/BASELINE.md",
     "docs/architecture/GOVERNANCE-CONTRACT.json",
     "docs/architecture/GOVERNANCE-CONTROLLER.md",
+    "docs/architecture/GOVERNANCE-DASHBOARD.md",
     "docs/architecture/SOURCE-FIRST-DECISION.json",
     "docs/evidence/2026-11-23-governance-ten-step-workflow-ci.md",
     "docs/evidence/2026-11-23-host-ollama-inference-removal.md",
@@ -152,7 +153,7 @@
       ]
     }
   ],
-  "evaluation_method": "Before implementation, compare official supported APIs and pinned-version builds; after implementation verify CI negative tests, end-to-end phase acceptance, measured impact and rollback. PR-scoped source-first enforcement compares every changed path from immutable base SHA to the review record. Required status checks must be configured separately to block merges. CI fetches all declared official documents live and checks source-specific text claims; this is not independent verification of interpretation or pinned NuGet API. GitHub REST readback in versioned evidence observes effective ruleset configuration but does not substitute for a negative merge test. Non-draft PR #2 on protected main intentionally failed the required Repository Policy Guard; live GitHub mergeable_state=blocked observed, then PR closed without merge; this does not establish rejected direct push or attempted merge API call.",
+  "evaluation_method": "Before implementation, compare official supported APIs and pinned-version builds; after implementation verify CI negative tests, end-to-end phase acceptance, measured impact and rollback. PR-scoped source-first enforcement compares every changed path from immutable base SHA to the review record. Required status checks must be configured separately to block merges. CI fetches all declared official documents live and checks source-specific text claims; this is not independent verification of interpretation or pinned NuGet API. GitHub REST readback in versioned evidence observes effective ruleset configuration but does not substitute for a negative merge test. Non-draft PR #2 on protected main intentionally failed the required Repository Policy Guard; live GitHub mergeable_state=blocked observed, then PR closed without merge; this does not establish rejected direct push or attempted merge API call. Native GitHub Actions GITHUB_STEP_SUMMARY displays six contract-derived statuses and remaining evidence; test asserts 0/6 and no false verified flags. GitHub Projects sync is unavailable through the current connector and remains OPEN.",
   "expected_impact": "Reduce unnecessary custom infrastructure, unsupported design proposals and duplicated tests while preserving one governance workflow. Optional local proposal agent reuses official C# integration; absent model service returns an error; no autonomous code edits. Recorded user-host bounded Ollama CPU token generation and failed Persian answer; qwen3:4b removed. Versioned optional profile is archival and disabled; no model can be considered installed or approved.",
   "rollback_risk": "Decision-contract/policy changes are Git-revertible before merge; this is not proof of rollback of external state.",
   "status": "EVIDENCE_REVIEWED"
