@@ -16,12 +16,12 @@ try
     if (args.Length == 2 &&
         args[0] is "--checkpoint-capture" or "--checkpoint-resume")
     {
-        string sha = GetCleanRepositoryRevision(root);
+        string checkpointRevision = GetCleanRepositoryRevision(root);
         int count = args[0] == "--checkpoint-capture"
             ? await GovernancePhaseWorkflow.RunWithDiskCheckpointsAsync(
-                root, sha, args[1])
+                root, checkpointRevision, args[1])
             : await GovernancePhaseWorkflow.ResumeFromDiskCheckpointsAsync(
-                args[1], sha);
+                args[1], checkpointRevision);
         Console.WriteLine(args[0] == "--checkpoint-capture"
             ? $"GOV_CHECKPOINTS_CAPTURED={count}; PHASE=OPEN"
             : $"GOV_CHECKPOINT_RESUMED_STEPS={count}; PHASE=OPEN");
