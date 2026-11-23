@@ -143,6 +143,9 @@ public sealed class GovernancePhaseWorkflowTests
             Assert.IsGreaterThan(0, count);
             Assert.IsTrue(Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories).Any(),
                 "The official filesystem store must contain checkpoint artifacts.");
+            int resumedCount = await GovernancePhaseWorkflow.ResumeFromDiskCheckpointsAsync(
+                directory, new string('a', 40));
+            Assert.AreEqual(10, resumedCount);
         }
         finally
         {
