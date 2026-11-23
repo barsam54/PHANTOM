@@ -28,5 +28,29 @@ jobs:
         run: dotnet build src/Phantom.LocalGovernanceCli/Phantom.LocalGovernanceCli.csproj --configuration Release
       - name: Validate local proposal CLI profile without inference
         run: dotnet run --project src/Phantom.LocalGovernanceCli/Phantom.LocalGovernanceCli.csproj --configuration Release --no-build -- --check-profile
+      - name: Exercise offline proposal-to-governance workflow handoff
+        run: |
+          dotnet run --project src/Phantom.LocalGovernanceCli/Phantom.LocalGovernanceCli.csproj --configuration Release --no-build -- --probe-workflow > "$RUNNER_TEMP/gov-proposal-handoff.json"
+          python3 - "$RUNNER_TEMP/gov-proposal-handoff.json" <<'PY'
+          import json, sys
+          report = json.load(open(sys.argv[1], encoding="utf-8"))
+          steps = report["Steps"]
+          assert report["Acceptance"] == "OPEN"
+          assert len(steps) == 10
+          assert steps[4]["Status"] == "REVIEW_REQUIRED"
+          assert steps[4]["Code"] == "GOV_UNTRUSTED_PROPOSAL_RECORDED"
+          assert steps[7]["Status"] == "BLOCKED"
+          assert report["Proposal"]["Origin"] == "test:synthetic-no-inference"
+          assert len(report["Proposal"]["Sha256"]) == 64
+          print("OFFLINE_HANDOFF_CHECK_OK; MODEL_INFERENCE_NOT_TESTED; GOV_P0_OPEN")
+          PY
+      - name: Preserve offline handoff decision report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-proposal-handoff
+          path: ${{ runner.temp }}/gov-proposal-handoff.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Run MSTest using Microsoft.Testing.Platform
         run: dotnet test --project tests/Phantom.Infrastructure.Tests/Phantom.Infrastructure.Tests.csproj --configuration Release --no-restore
