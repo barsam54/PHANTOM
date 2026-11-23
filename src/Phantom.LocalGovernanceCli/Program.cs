@@ -30,11 +30,12 @@ try
             Number("historical_ci_criteria_verified"), Number("current_phase_criteria_verified"),
             Flag("phase_evidence_verification_completed"), Field("governance_acceptance"));
         string revision = GetCleanRepositoryRevision(root);
-        var report = await GovernancePhaseWorkflow.RunAsync(
+        var evidenceWorkflowReport = await GovernancePhaseWorkflow.RunAsync(
             root, revision, externalEvidence: evidence);
-        Console.WriteLine(JsonSerializer.Serialize(report,
+        Console.WriteLine(JsonSerializer.Serialize(evidenceWorkflowReport,
             new JsonSerializerOptions { WriteIndented = true }));
-        return report.Steps[6].Status == "SCOPED_ONLY" && !report.Accepted ? 0 : 2;
+        return evidenceWorkflowReport.Steps[6].Status == "SCOPED_ONLY" &&
+            !evidenceWorkflowReport.Accepted ? 0 : 2;
     }
 
     if (args.Length == 2 &&
