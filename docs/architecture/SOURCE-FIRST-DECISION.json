@@ -25,6 +25,7 @@
     "scripts/validate_governance_evidence.py",
     "scripts/verify_governance_artifact.py",
     "scripts/verify_official_sources.py",
+    "scripts/verify_prior_governance_evidence.py",
     "src/Phantom.AgentFramework/GovernanceImpactAssessment.cs",
     "src/Phantom.AgentFramework/GovernanceLocalProposalAgent.cs",
     "src/Phantom.AgentFramework/GovernancePhaseWorkflow.cs",
@@ -43,7 +44,8 @@
     "tests/policy/test_repository_policy.py",
     "tests/policy/test_source_change_gate.py",
     "tests/policy/test_source_first_policy.py",
-    "tests/policy/test_verify_governance_artifact.py"
+    "tests/policy/test_verify_governance_artifact.py",
+    "tests/policy/test_verify_prior_governance_evidence.py"
   ],
   "problem": "The governance workflow contains inspection executors and previously allowed design decisions before validating existing vendor-supported options.",
   "baseline_ref": "docs/architecture/BASELINE.md#12-p0--unified-development-governance-controller-proposed-implementation-contract-open",
