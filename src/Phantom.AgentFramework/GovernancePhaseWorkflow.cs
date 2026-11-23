@@ -30,17 +30,30 @@ public static class GovernancePhaseWorkflow
 
     public sealed record ProposalReceipt(string Sha256, string BaseRevision, string Origin);
 
+    /// <summary>
+    /// External CI evidence is input data, NOT self-authenticating approval.
+    /// Runner and provider provenance must be verified independently.
+    /// </summary>
+    public sealed record EvidenceSubmission(
+        string SchemaVersion, string Status, string SourceSha, string ContractSha256,
+        string BaselineSha256, string ContractGate, string ReuseDecision,
+        int CriteriaDiscovered, int HistoricalCiCriteriaVerified,
+        int CurrentPhaseCriteriaVerified, bool PhaseEvidenceVerificationCompleted,
+        string GovernanceAcceptance);
+
     public sealed record Report(
         string RepositoryRoot, string Revision, string Gate,
         string Acceptance, IReadOnlyList<StepDecision> Steps,
-        ProposalReceipt? Proposal = null)
+        ProposalReceipt? Proposal = null,
+        EvidenceSubmission? EvidenceInput = null)
     {
         public bool Accepted => Acceptance == "PASS";
     }
 
     public static async Task<Report> RunAsync(
         string repositoryRoot, string revision, CancellationToken cancellationToken = default,
-        ProposalSubmission? untrustedProposal = null)
+        ProposalSubmission? untrustedProposal = null,
+        EvidenceSubmission? externalEvidence = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
         ArgumentException.ThrowIfNullOrWhiteSpace(revision);
@@ -69,7 +82,7 @@ public static class GovernancePhaseWorkflow
                 untrustedProposal.BaseRevision, untrustedProposal.Origin);
         }
         Report start = new(repositoryRoot, revision, "GOV-P0", "OPEN",
-            Array.Empty<StepDecision>(), receipt);
+            Array.Empty<StepDecision>(), receipt, externalEvidence);
         await using Run run = await InProcessExecution.RunAsync(BuildWorkflow(), start);
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -326,11 +339,43 @@ public static class GovernancePhaseWorkflow
             "Use immutable SHA-based CI evidence plus matching pre/post measurements.",
             ".github/workflows/dotnet-build-test.yml", "build_and_tests");
 
-    private static Report Evidence(Report state) =>
-        Add(state, "evidence", "BLOCKED", "GOV_EVIDENCE_INDEPENDENT_VERIFICATION_MISSING",
-            "The read-only phase discovered evidence but did not verify its test run, provenance, integrity, criterion coverage or input identity.",
-            "Run the independent provider-backed criterion and artifact validators for this exact phase and immutable source revision; bind the validated receipts to this workflow before acceptance.",
-            "docs/architecture/GOVERNANCE-CONTRACT.json", "evidence");
+    private static Report Evidence(Report state)
+    {
+        EvidenceSubmission? input = state.EvidenceInput;
+        const string contract = "docs/architecture/GOVERNANCE-CONTRACT.json";
+        if (input is null)
+            return Add(state, "evidence", "BLOCKED", "GOV_EVIDENCE_INDEPENDENT_VERIFICATION_MISSING",
+                "No verified CI evidence was provided to the governance workflow.",
+                "Run the provider-backed independent validators for this exact source revision.",
+                contract, "evidence");
+
+        string baselineFile = FileAt(state, "docs/architecture/BASELINE.md");
+        string contractFile = FileAt(state, contract);
+        if (!File.Exists(baselineFile) || !File.Exists(contractFile) ||
+            input.SchemaVersion != "phantom.governance.evidence-pipeline.v1" ||
+            input.Status != "VERIFIED_SCOPE_ONLY" ||
+            input.ContractGate != "GOV-P0" ||
+            input.SourceSha != state.Revision ||
+            input.ContractSha256 != Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(contractFile))).ToLowerInvariant() ||
+            input.BaselineSha256 != Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(baselineFile))).ToLowerInvariant() ||
+            input.CriteriaDiscovered != 6 ||
+            input.HistoricalCiCriteriaVerified != 2 ||
+            input.CurrentPhaseCriteriaVerified != 0 ||
+            input.PhaseEvidenceVerificationCompleted ||
+            input.GovernanceAcceptance != "OPEN" ||
+            input.ReuseDecision is not ("BLOCKED" or "REUSABLE"))
+            return Add(state, "evidence", "BLOCKED", "GOV_EVIDENCE_BINDING_INVALID",
+                "The submitted evidence report does not match the exact checkout, baseline, contract or declared limited scope.",
+                "Regenerate the independently validated report against this immutable revision; do not self-approve.",
+                contract, "evidence");
+
+        return Add(state, "evidence", "SCOPED_ONLY", "GOV_HISTORICAL_CI_RECEIPT_CONSUMED",
+            "Two historical CI receipts were submitted with matching source/contract/baseline identifiers. This input is not standalone proof of provider authenticity or current phase acceptance.",
+            "Continue with independently verified current-phase criteria, authorized execution and impact/rollback before acceptance.",
+            contract, "evidence");
+    }
 
     private static Report Acceptance(Report state) =>
         Add(state, "acceptance", "BLOCKED", "GOV_ACCEPTANCE_UNPROVEN",
