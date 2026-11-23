@@ -21,6 +21,17 @@ Only after an explicit separate authorization should a model-backed worker be in
 - Chat API `POST /api/chat`, optional future use only: https://docs.ollama.com/api/chat
 - `qwen3:4b` registry entry: https://ollama.com/library/qwen3:4b
 
+## Microsoft-supported C# agent integration (proposal only)
+The optional local worker uses Microsoft's official `OllamaApiClient(...).AsAIAgent(...)` pattern with `OllamaSharp` 5.5.2 and pinned `Microsoft.Agents.AI` 1.28.0. It has **no tools**, shell privileges, repo-write permissions, merge authority or acceptance credentials. Its output must be reviewed as untrusted suggestions, not executed instructions.
+
+The optional CLI is at `src/Phantom.LocalGovernanceCli/`. Run from a PHANTOM checkout:
+- Offline configuration check (safe in CI): `dotnet run --project src/Phantom.LocalGovernanceCli -- --check-profile`
+- Opt-in localhost model invocation: `printf 'Describe an observed code problem, without secrets' | dotnet run --project src/Phantom.LocalGovernanceCli -- --propose`
+
+The second command only works on a host running Ollama with `qwen3:4b`. It produces a textual, unverified proposal and **does not change code or run a ten-stage phase**. Local inference has not been verified by CI. The repository's official-source decision record is `docs/architecture/SOURCE-FIRST-DECISION.json`.
+
+Microsoft vendor reference: https://learn.microsoft.com/en-us/agent-framework/agents/providers/ollama
+
 ## Acceptance limits
 - Versioned profile and CI offline tests: checked by repo policy.
 - Host model-present check: **NOT PERFORMED** in this PR.
