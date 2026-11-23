@@ -47,6 +47,11 @@ class GovernanceInventoryTests(unittest.TestCase):
         self.assertEqual("READ_ONLY_DISCOVERY_NOT_ACCEPTANCE", record["kind"])
         self.assertTrue(all(not cap["verified"] for cap in record["capabilities"]))
         self.assertFalse(record["dashboard"]["projects_synced"])
+        barrier = record["merge_barrier_history"]
+        self.assertEqual("NEGATIVE_REQUIRED_CHECK_BLOCKED", barrier["observation"])
+        self.assertFalse(barrier["verified"])
+        self.assertFalse(barrier["current_ruleset_revalidated"])
+        self.assertFalse(barrier["direct_push_rejection_tested"])
 
     def test_rejects_false_accepted_contract(self):
         target = self.root / inventory_module.CONTRACT_PATH
@@ -67,6 +72,8 @@ class GovernanceInventoryTests(unittest.TestCase):
         self.assertIn("GOV-P0 OPEN", text)
         self.assertIn("NOT VERIFIED", text)
         self.assertIn("Projects synchronized: NO", text)
+        self.assertIn("Protected-main historical evidence", text)
+        self.assertIn("Direct push denial tested: NO", text)
 
 
 if __name__ == "__main__":
