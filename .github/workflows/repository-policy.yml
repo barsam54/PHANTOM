@@ -14,10 +14,17 @@ jobs:
     name: Validate repository layout and explain violations
     runs-on: ubuntu-latest
     steps:
-      - name: Check out source
+      - name: Check out source with PR base history
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Run repository governance policy unit and negative tests
         run: python3 -m unittest discover -s tests/policy -p 'test_*.py' -v
+      - name: Enforce source-first review for every changed PR file
+        if: github.event_name == 'pull_request'
+        env:
+          SOURCE_GATE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 scripts/check_source_first_changes.py --base-sha "$SOURCE_GATE_BASE_SHA"
       - name: Check tracked files and P0 governance contract
         run: python3 scripts/check_repository_policy.py
       - name: Generate read-only governance inventory and CI dashboard
