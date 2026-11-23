@@ -40,11 +40,17 @@ def fetch(url, token=None):
                "X-GitHub-Api-Version": "2022-11-28"}
     if token:
         headers["Authorization"] = "Bearer " + token
-    with urlopen(Request(url, headers=headers), timeout=30) as response:
-        data = response.read(MAX_ZIP + 1)
-        if len(data) > MAX_ZIP:
-            raise ValueError("PROVIDER_RESPONSE_TOO_LARGE")
-        return data
+    try:
+        with urlopen(Request(url, headers=headers), timeout=30) as response:
+            data = response.read(MAX_ZIP + 1)
+            if len(data) > MAX_ZIP:
+                raise ValueError("PROVIDER_RESPONSE_TOO_LARGE")
+            return data
+    except HTTPError as error:
+        from urllib.parse import urlparse
+        safe = urlparse(url)
+        raise ValueError("PROVIDER_HTTP_%d_AT_%s%s" % (
+            error.code, safe.hostname, safe.path)) from error
 
 
 def inspect_archive(archive, metadata, expected_sha, contract_bytes, baseline_bytes):
