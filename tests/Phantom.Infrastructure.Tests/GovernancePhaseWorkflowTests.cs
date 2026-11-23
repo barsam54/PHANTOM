@@ -163,6 +163,41 @@ public sealed class GovernancePhaseWorkflowTests
                 Path.Combine(FindRepositoryRoot(), "obj", "unsafe-checkpoints")));
     }
 
+    [TestMethod]
+    public async Task SourceFirstAdmissionBlocksModelProposalWithoutReview()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "phantom-gov-source-" +
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            string contractFile = Path.Combine(root,
+                "docs/architecture/GOVERNANCE-CONTRACT.json");
+            string baselineFile = Path.Combine(root, "docs/architecture/BASELINE.md");
+            string frameworkProject = Path.Combine(root,
+                "src/Phantom.AgentFramework/Phantom.AgentFramework.csproj");
+            Directory.CreateDirectory(Path.GetDirectoryName(contractFile)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(frameworkProject)!);
+            File.WriteAllText(contractFile, "{}");
+            File.WriteAllText(baselineFile,
+                "Six simultaneous, complementary capabilities");
+            File.WriteAllText(frameworkProject,
+                "<Project>Microsoft.Agents.AI.Workflows</Project>");
+            string revision = new string('1', 40);
+            var proposal = new GovernancePhaseWorkflow.ProposalSubmission(
+                "Review before coding", revision, "ollama:qwen3:4b");
+            var report = await GovernancePhaseWorkflow.RunAsync(
+                root, revision, untrustedProposal: proposal);
+            Assert.AreEqual("GOV_SOURCE_FIRST_REVIEW_MISSING", report.Steps[4].Code);
+            Assert.AreEqual("BLOCKED", report.Steps[4].Status);
+            Assert.AreEqual("OPEN", report.Acceptance);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
