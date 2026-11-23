@@ -65,7 +65,7 @@
       "kind": "REUSE",
       "reference": "Microsoft Agent Framework Ollama provider + OllamaSharp 5.5.2",
       "outcome": "PREFERRED_FOR_OPTIONAL_LOCAL_INFERENCE",
-      "reason": "Microsoft official C# provider example uses OllamaApiClient.AsAIAgent; avoids developing a custom inference transport."
+      "reason": "Microsoft's current official C# example explicitly uses OllamaSharp/OllamaApiClient.AsAIAgent, matching PHANTOM's integration. Version-pinned build and tests pass; host inference remains open."
     }
   ],
   "chosen_option": "reuse_framework",
@@ -131,12 +131,13 @@
       "url": "https://learn.microsoft.com/en-us/agent-framework/agents/providers/ollama",
       "applies_to": "C# OllamaApiClient.AsAIAgent usage within Microsoft Agent Framework",
       "reviewed_version": "Published provider example reviewed 2026-11-23; OllamaSharp pinned 5.5.2 and Microsoft Agent Framework pinned 1.28.0",
-      "verification": "The CURRENT official C# example uses Microsoft.Extensions.AI.Ollama / OllamaChatClient, whereas PHANTOM currently uses OllamaSharp. .NET build tests only prove its pinned integration compiles. Provider alignment requires separate review; do not claim OllamaSharp is the documented current sample.",
+      "verification": "Official CURRENT Microsoft Agent Framework C# Ollama example uses OllamaSharp/OllamaApiClient.AsAIAgent as PHANTOM does. Previous alleged C# OllamaChatClient mismatch was incorrect: that name belongs to the Python example. Current pinned 1.28.0/5.5.2 builds and tests pass; real host inference remains unverified.",
       "expected_terms": [
-        "OllamaChatClient",
-        "Native Ollama"
+        "OllamaSharp",
+        "OllamaApiClient",
+        "AsAIAgent"
       ],
-      "source_alignment": "PARTIAL_MISMATCH_REVIEW_REQUIRED: Official C# example uses OllamaChatClient; pinned PHANTOM code uses OllamaSharp. Compile/runtime tests and provider review are separate from live page text assertions."
+      "source_alignment": "C_SHARP_PROVIDER_PATTERN_MATCH_CONFIRMED_FROM_CURRENT_MICROSOFT_DOCS; PINNED_BUILD_CI_PASS; HOST_MODEL_INFERENCE_OPEN"
     },
     {
       "provider": "Ollama",
