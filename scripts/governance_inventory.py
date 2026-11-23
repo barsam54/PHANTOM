@@ -113,7 +113,7 @@ def markdown(report):
         verified = item["verified"] and state == "PASS"
         label = labels.get(item["id"], item["id"])
         lines.append("| " + label + " | **" + state + "** | " +
-                     ("YES" if verified else "NO") + " | " +
+                     ("VERIFIED" if verified else "NOT VERIFIED") + " | " +
                      item["next_proof"].replace("|", "/") + " |")
     lines.extend([
         "",
