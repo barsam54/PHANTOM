@@ -30,6 +30,13 @@ class RepositoryPolicyTests(unittest.TestCase):
         issues = policy.check_path("tests/Suite/bin/Debug/test.dll")
         self.assertTrue(any(code == "GENERATED_OUTPUT_TRACKED" for code, _ in issues))
 
+    def test_rejects_model_weights(self):
+        for path in ["infra/local-models/model.gguf",
+                     "src/assets/weights.safetensors", "data/weights.ggml"]:
+            with self.subTest(path=path):
+                self.assertTrue(any(code == "SENSITIVE_OR_BINARY_ARTIFACT"
+                    for code, _ in policy.check_path(path)))
+
     def test_rejects_credentials(self):
         for path in ["src/.env", "src/config/secrets.json", "infra/server.key"]:
             with self.subTest(path=path):
