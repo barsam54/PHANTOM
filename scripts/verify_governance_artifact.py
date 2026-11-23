@@ -98,6 +98,24 @@ def inspect_archive(archive, metadata, expected_sha, contract_bytes, baseline_by
             "governance_acceptance": "OPEN"}
 
 
+
+def checkout_sha_from_archive(archive):
+    """Read untrusted candidate checkout SHA; GitHub must attest its parents next."""
+    if len(archive) > MAX_ZIP:
+        raise ValueError("ARCHIVE_OVERSIZED")
+    with ZipFile(io.BytesIO(archive)) as zipped:
+        names = zipped.namelist()
+        matching = [n for n in names if PurePosixPath(n).name == "governance-inventory.json"]
+        if len(matching) != 1:
+            raise ValueError("CHECKOUT_REPORT_MISSING")
+        if zipped.getinfo(matching[0]).file_size > MAX_EXPANDED:
+            raise ValueError("CHECKOUT_REPORT_OVERSIZED")
+        sha_value = json.loads(zipped.read(matching[0])).get("commit_sha")
+    if not isinstance(sha_value, str) or not SHA.fullmatch(sha_value):
+        raise ValueError("CHECKOUT_SHA_INVALID")
+    return sha_value
+
+
 def verify_live(repo, run_id, expected_sha, cache_dir, token=None, read=fetch):
     if not REPO.fullmatch(repo or "") or not SHA.fullmatch(expected_sha or "") or run_id <= 0:
         return denial("INVALID_REQUEST", "Expected repository, positive run id and full SHA")
@@ -122,9 +140,6 @@ def verify_live(repo, run_id, expected_sha, cache_dir, token=None, read=fetch):
         origin.get("head_sha") != expected_sha or not DIGEST.fullmatch(art.get("digest") or "") or
         not isinstance(art.get("id"), int) or art["id"] <= 0):
         return denial("ARTIFACT_PROVENANCE_INVALID", "Artifact digest/run binding invalid")
-    prefix = "https://raw.githubusercontent.com/" + repo + "/" + expected_sha + "/"
-    contract = read(prefix + CONTRACT, None)
-    baseline = read(prefix + BASELINE, None)
     cache_dir = Path(cache_dir)
     target = cache_dir / ("run-%d-artifact-%d-%s.zip" % (run_id, art["id"], expected_sha))
     reused = False
@@ -133,7 +148,20 @@ def verify_live(repo, run_id, expected_sha, cache_dir, token=None, read=fetch):
         reused = sha(archive) == art["digest"][7:]
     if not reused:
         archive = read(base + "artifacts/" + str(art["id"]) + "/zip", token)
-    result = inspect_archive(archive, art, expected_sha, contract, baseline)
+    checkout_sha = checkout_sha_from_archive(archive)
+    # GitHub PR workflows check out a synthetic merge commit (base + head).
+    # Check the actual commit parents through GitHub rather than trusting the ZIP.
+    checkout_commit = json.loads(read("https://api.github.com/repos/" + repo +
+                                      "/commits/" + checkout_sha, token))
+    parents = checkout_commit.get("parents", [])
+    if (checkout_commit.get("sha") != checkout_sha or len(parents) != 2 or
+        parents[1].get("sha") != expected_sha):
+        return denial("CHECKOUT_PARENT_MISMATCH",
+                      "Evidence checkout is not a GitHub merge of this PR head")
+    prefix = "https://raw.githubusercontent.com/" + repo + "/" + checkout_sha + "/"
+    contract = read(prefix + CONTRACT, None)
+    baseline = read(prefix + BASELINE, None)
+    result = inspect_archive(archive, art, checkout_sha, contract, baseline)
     if result["status"] != "CHECK_OK":
         return result
     if not reused:
@@ -142,7 +170,8 @@ def verify_live(repo, run_id, expected_sha, cache_dir, token=None, read=fetch):
         temp.write_bytes(archive)
         temp.replace(target)
     result.update({"run_id": run_id, "artifact_id": art["id"],
-                   "archive_reused": reused, "ci_tests_reexecuted": False,
+                   "archive_reused": reused, "checkout_sha": checkout_sha,
+                   "pr_head_sha": expected_sha, "ci_tests_reexecuted": False,
                    "verified_against_live_provider": True})
     return result
 
