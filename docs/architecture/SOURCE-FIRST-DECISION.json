@@ -133,9 +133,9 @@
       "verification": "The CURRENT official C# example uses Microsoft.Extensions.AI.Ollama / OllamaChatClient, whereas PHANTOM currently uses OllamaSharp. .NET build tests only prove its pinned integration compiles. Provider alignment requires separate review; do not claim OllamaSharp is the documented current sample.",
       "expected_terms": [
         "OllamaChatClient",
-        "AsAIAgent"
+        "modelId"
       ],
-      "source_alignment": "PARTIAL_MISMATCH_REVIEW_REQUIRED"
+      "source_alignment": "PARTIAL_MISMATCH_REVIEW_REQUIRED: Official C# example uses OllamaChatClient; pinned PHANTOM code uses OllamaSharp. Compile/runtime tests and provider review are separate from live page text assertions."
     },
     {
       "provider": "Ollama",
